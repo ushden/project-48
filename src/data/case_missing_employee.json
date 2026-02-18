@@ -1,0 +1,72 @@
+{
+  "id": "case_missing_employee",
+  "title": "Пропавший сотрудник",
+  "evidence": [
+    {
+      "id": "chat_01",
+      "type": "chat",
+      "title": "Переписка с коллегой",
+      "content": "…",
+      "unlocked": true
+    },
+    {
+      "id": "report_01",
+      "type": "document",
+      "title": "Отчёт о доступе",
+      "content": "…",
+      "unlocked": false
+    }
+  ],
+  "dialogues": [
+    {
+      "id": "npc_intro",
+      "npc": "Менеджер",
+      "lines": [
+        {
+          "text": "Мы потеряли связь вчера.",
+          "unlocks": ["report_01"]
+        }
+      ]
+    }
+  ],
+  "deduction": {
+    "correctEvidence": ["ev2", "ev4"],
+    "requiredLinks": [
+      {
+        "fromId": "ev2",
+        "toId": "ev4",
+        "type": "supports"
+      }
+    ],
+    "forbiddenLinks": [
+      {
+        "fromId": "ev1",
+        "toId": "ev4",
+        "type": "supports"
+      }
+    ],
+    "endings": [
+      {
+        "id": "true",
+        "title": "Truth Revealed",
+        "requiredEvidence": ["ev2", "ev4"],
+        "minRating": "A",
+        "text": "You uncovered the real motive and the true culprit."
+      },
+      {
+        "id": "partial",
+        "title": "Partial Truth",
+        "requiredEvidence": ["ev2"],
+        "minRating": "C",
+        "text": "You found part of the truth, but missed a key detail."
+      },
+      {
+        "id": "failure",
+        "title": "Wrong Conclusion",
+        "requiredEvidence": [],
+        "minRating": "F",
+        "text": "The case remains unresolved. An innocent person may suffer."
+      }
+    ]
+  }
+}
