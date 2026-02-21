@@ -1,4 +1,4 @@
-import {FlatList, Pressable, StyleSheet, Text, View} from 'react-native';
+import {FlatList, Pressable, StyleSheet, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import {useCaseStore} from '../store/caseStore';

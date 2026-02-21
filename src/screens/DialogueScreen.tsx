@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {Pressable, StyleSheet, Text, View} from 'react-native';
+import {Pressable, StyleSheet, View} from 'react-native';
 import {tutorialMessages, useCaseStore} from '../store/caseStore';
 import {StyledText} from '../components/StyledText';
 
@@ -35,8 +35,8 @@ export default function DialogueScreen() {
     spendTime('dialogueStep');
 
     if (tutorial.enabled && tutorial.step === 1) {
-      advanceTutorial(2)
-      addLog("system", tutorialMessages[2])
+      advanceTutorial(2);
+      addLog('system', tutorialMessages[2], 'hint');
     }
   };
 

@@ -37,13 +37,18 @@
       "lines": [
         {
           "text": "Мы потеряли связь вчера.",
-          "unlocks": ["report_01"]
+          "unlocks": [
+            "report_01"
+          ]
         }
       ]
     }
   ],
   "deduction": {
-    "correctEvidence": ["ev2", "ev4"],
+    "correctEvidence": [
+      "ev2",
+      "ev4"
+    ],
     "requiredLinks": [
       {
         "fromId": "ev2",
@@ -75,14 +80,19 @@
       {
         "id": "true",
         "title": "Truth Revealed",
-        "requiredEvidence": ["ev2", "ev4"],
+        "requiredEvidence": [
+          "ev2",
+          "ev4"
+        ],
         "minRating": "A",
         "text": "You uncovered the real motive and the true culprit."
       },
       {
         "id": "partial",
         "title": "Partial Truth",
-        "requiredEvidence": ["ev2"],
+        "requiredEvidence": [
+          "ev2"
+        ],
         "minRating": "C",
         "text": "You found part of the truth, but missed a key detail."
       },
@@ -104,6 +114,63 @@
         "id": "hint_wrong",
         "condition": "onWrongDeduction",
         "text": "Your conclusion feels premature. Re-evaluate the strongest evidence."
+      }
+    ]
+  },
+  "crimeScene": {
+    "id": "office_scene",
+    "image": "office_missing_employee.png",
+    "points": [
+      {
+        "id": "desk",
+        "x": 0.45,
+        "y": 0.62,
+        "type": "evidence",
+        "payload": {
+          "evidenceId": "work_report_draft"
+        }
+      },
+      {
+        "id": "computer",
+        "x": 0.52,
+        "y": 0.48,
+        "type": "log",
+        "payload": {
+          "text": "Рабочий компьютер выключен. Не похоже, что он уходил в спешке."
+        }
+      },
+      {
+        "id": "window",
+        "x": 0.78,
+        "y": 0.32,
+        "type": "choice",
+        "payload": {
+          "flag": "noticed_open_window"
+        }
+      },
+      {
+        "id": "chair",
+        "x": 0.38,
+        "y": 0.7,
+        "type": "empty"
+      },
+      {
+        "id": "trash",
+        "x": 0.6,
+        "y": 0.75,
+        "type": "evidence",
+        "payload": {
+          "evidenceId": "shredded_note"
+        }
+      },
+      {
+        "id": "clock",
+        "x": 0.3,
+        "y": 0.25,
+        "type": "log",
+        "payload": {
+          "text": "Часы остановились. Время здесь словно застыло."
+        }
       }
     ]
   }

@@ -8,7 +8,8 @@ export const casesIndex: CaseMeta[] = [
     description: 'An employee vanished after a late-night shift.',
     region: 'test',
     position: {x: 0.2, y: 0.3},
-    difficulty: 1
+    difficulty: 1,
+    unlockConditions: [],
   },
   {
     id: 'case_warehouse_incident',
@@ -16,7 +17,11 @@ export const casesIndex: CaseMeta[] = [
     description: 'A suspicious accident at a logistics hub.',
     region: 'test 2',
     position: {x: 0.5, y: 0.25},
-    difficulty: 1
+    difficulty: 1,
+    unlockConditions: [
+      {type: 'caseCompleted', caseId: 'case_01'},
+      {type: 'minRating', rating: 'B'}
+    ]
   }
 ];
 

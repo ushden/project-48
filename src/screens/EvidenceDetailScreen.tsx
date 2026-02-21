@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import {ScrollView, StyleSheet, View} from 'react-native';
 import {useRoute} from '@react-navigation/native';
 import {useCaseStore} from '../store/caseStore';
 import {StyledText} from '../components/StyledText';

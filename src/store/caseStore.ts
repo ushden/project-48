@@ -12,6 +12,7 @@ import {
   Ending,
   Hint,
   LogEntry,
+  LogImportance,
   LogType,
   Rating,
   TimeCosts,
@@ -52,6 +53,13 @@ type CaseState = {
     enabled: boolean,
     step: TutorialStep
   },
+  hasUnreadLogEntries: boolean;
+  logFlags: Record<string, boolean>;
+  sceneProgress: {
+    [sceneId: string]: {
+      discoveredPoints: string[];
+    };
+  };
 
   loadGame: () => void;
   loadCase: (caseId: string) => void
@@ -60,7 +68,7 @@ type CaseState = {
   isUnlocked: (id: string) => boolean
   checkDeduction: (selected: string[]) => boolean
   calculateRating: () => Rating
-  addLog: (type: LogType, text: string) => void
+  addLog: (type: LogType, text: string, importance?: LogImportance) => void
   getEnding: () => Ending | null
   addBoardLink: (fromId: string, toId: string, type: BoardLinkType) => void;
   removeBoardLink: (fromId: string, toId: string) => void;
@@ -75,6 +83,10 @@ type CaseState = {
   spendTime: (action: keyof TimeCosts) => void;
   advanceTutorial: (step: TutorialStep) => void;
   finishTutorial: () => void;
+  markLogAsRead: () => void;
+  hasLogFlag: (key: string) => boolean;
+  setLogFlag: (key: string) => void;
+  markScenePoint: (sceneId: string, pointId: string) => void;
 };
 
 const upgrade = (r: Rating): Rating => {
@@ -97,12 +109,15 @@ const serializeState = (state: CaseState) => ({
   unlockedEvidence: Array.from(state.unlockedEvidence),
   deductionState: state.deductionState,
   log: state.log,
+  logFlags: state.logFlags,
   boardLinks: state.boardLinks,
   nodePositions: state.nodePositions,
   tutorial: state.tutorial,
   hintsUsed: state.hintsUsed,
   timeLeft: state.timeLeft,
-  timerStatus: state.timerStatus
+  timerStatus: state.timerStatus,
+  hasUnreadLogEntries: state.hasUnreadLogEntries,
+  sceneProgress: state.sceneProgress
 });
 
 const hydrateState = (data: CaseState): Partial<CaseState> => ({
@@ -117,9 +132,12 @@ const hydrateState = (data: CaseState): Partial<CaseState> => ({
   boardLinks: data.boardLinks ?? [],
   nodePositions: data.nodePositions ?? {},
   tutorial: data.tutorial ?? {},
+  logFlags: data.logFlags ?? {},
+  sceneProgress: data.sceneProgress ?? {},
   hintsUsed: data.hintsUsed ?? 0,
   timeLeft: data.timeLeft ?? 0,
-  timerStatus: data.timerStatus ?? 'stopped'
+  timerStatus: data.timerStatus ?? 'stopped',
+  hasUnreadLogEntries: data.hasUnreadLogEntries ?? false
 });
 
 const hasLink = (links: BoardLink[], rule: DeductionLinkRule) =>
@@ -149,6 +167,31 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     enabled: true,
     step: 0
   },
+  hasUnreadLogEntries: false,
+  logFlags: {},
+  sceneProgress: {},
+
+  markScenePoint: (sceneId, pointId) =>
+    set(state => ({
+      sceneProgress: {
+        ...state.sceneProgress,
+        [sceneId]: {
+          discoveredPoints: [
+            ...(state.sceneProgress[sceneId]?.discoveredPoints ?? []),
+            pointId
+          ]
+        }
+      }
+    })),
+
+  hasLogFlag: (key) => Boolean(get().logFlags[key]),
+  setLogFlag: (key) =>
+    set(state => ({
+      logFlags: {...state.logFlags, [key]: true}
+    })),
+  markLogAsRead: () => {
+    set({hasUnreadLogEntries: false});
+  },
 
   advanceTutorial: (step: TutorialStep) =>
     set(state => ({
@@ -157,7 +200,6 @@ export const useCaseStore = create<CaseState>((set, get) => ({
         step
       }
     })),
-
   finishTutorial: () =>
     set({
       tutorial: {
@@ -179,7 +221,6 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       `Time spent: ${cost}s`
     );
   },
-
   startTimer: () => {
     if (get().timerStatus === 'running') return;
 
@@ -228,7 +269,6 @@ export const useCaseStore = create<CaseState>((set, get) => ({
   resetGame: async () => {
     await AsyncStorage.removeItem(STORAGE_KEY);
   },
-
   saveGame: async () => {
     const state = get();
     const data = serializeState(state);
@@ -237,7 +277,6 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       JSON.stringify(data)
     );
   },
-
   loadGame: async () => {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
 
@@ -285,7 +324,6 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       get().addLog('system', tutorialMessages[0]);
     }
   },
-
   completeCase: () => {
     const {activeCaseId, calculateRating, finishTutorial} = get();
 
@@ -332,7 +370,6 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       };
     });
   },
-
 
   isUnlocked: (id) => {
     return get().unlockedEvidence.has(id);
@@ -444,7 +481,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     return base;
   },
 
-  addLog: (type: LogType, text: string) =>
+  addLog: (type: LogType, text: string, importance?: LogImportance) =>
     set(state => ({
       log: [
         ...state.log,
@@ -452,7 +489,8 @@ export const useCaseStore = create<CaseState>((set, get) => ({
           id: crypto.randomUUID(),
           type,
           text,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          importance: importance ?? 'normal'
         }
       ]
     })),

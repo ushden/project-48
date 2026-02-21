@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {Pressable, StyleSheet, Text, View} from 'react-native';
+import {Pressable, StyleSheet, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import {useCaseStore} from '../store/caseStore';
@@ -53,8 +53,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#121212'
   },
   secret: {
-    color: "#ffd700",
-    textAlign: "center",
+    color: '#ffd700',
+    textAlign: 'center',
     marginBottom: 12
   },
   title: {

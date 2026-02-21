@@ -1,4 +1,4 @@
-import {Pressable, StyleSheet, Text} from 'react-native';
+import {Pressable, StyleSheet} from 'react-native';
 import {Evidence} from '../types/case';
 import {StyledText} from './StyledText';
 

@@ -6,7 +6,16 @@ export type Evidence = {
   unlocked: boolean
 }
 
-export type CaseStatus = 'locked' | 'available' | 'completed'
+export type Rating = 'S' | 'A' | 'B' | 'C' | 'F';
+
+export type CaseStatus = 'locked' | 'available' | 'completed' | 'active';
+
+export type CaseUnlockCondition =
+  | {type: 'caseCompleted'; caseId: string}
+  | {type: 'minRating'; rating: Rating}
+  | {type: 'timeRemaining'; minMinutes: number}
+  | {type: 'requiredLinks'; count: number}
+  | {type: 'secretEndingUnlocked'; caseId: string};
 
 export type DialogueLine = {
   text: string
@@ -30,7 +39,7 @@ export type Ending = {
   id: string
   title: string
   requiredEvidence: string[]
-  minRating: 'S' | 'A' | 'B' | 'C' | 'F'
+  minRating: Rating;
   text: string
   secret?: boolean
   conditions?: EndingConditions
@@ -58,15 +67,16 @@ export type TimeCosts = {
 }
 
 export type CaseMeta = {
-  id: string
-  title: string
+  id: string;
+  title: string;
   description: string;
-  region: string
+  region: string;
   position: {
     x: number
     y: number
-  }
-  difficulty: 1 | 2 | 3 | 4 | 5
+  };
+  difficulty: 1 | 2 | 3 | 4 | 5;
+  unlockConditions: CaseUnlockCondition[];
 }
 
 export type CaseData = {
@@ -77,20 +87,21 @@ export type CaseData = {
   evidence: Evidence[];
   dialogues: Dialogue[];
   deduction: Deduction;
+  crimeScene?: CrimeScene;
 }
 
 export type DeductionStatus = 'idle' | 'solved' | 'failed';
 
-export type Rating = 'S' | 'A' | 'B' | 'C' | 'F'
-
-export type LogType = 'evidence' | 'dialogue' | 'deduction' | 'system'
+export type LogType = 'evidence' | 'dialogue' | 'deduction' | 'system';
+export type LogImportance = 'normal' | 'hint' | 'story';
 
 export type LogEntry = {
-  id: string
-  type: LogType
-  text: string
-  timestamp: number
-}
+  id: string;
+  type: LogType;
+  text: string;
+  timestamp: number;
+  importance?: LogImportance;
+};
 
 export type BoardLinkType =
   | 'supports'
@@ -110,3 +121,18 @@ export type Hint = {
 }
 
 export type TutorialStep = 0 | 1 | 2 | 3 | 4 | 5;
+
+export type ScenePoint = {
+  id: string;
+  x: number;
+  y: number;
+  type: 'evidence' | 'log' | 'choice' | 'empty';
+  payload?: any;
+  discovered?: boolean;
+};
+
+export type CrimeScene = {
+  id: string;
+  image: string;
+  points: ScenePoint[];
+};

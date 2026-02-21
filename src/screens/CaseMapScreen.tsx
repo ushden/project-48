@@ -1,64 +1,113 @@
-import {useState} from 'react';
-import {Dimensions, Pressable, StyleSheet, Text, View, Image} from 'react-native';
+import {useEffect, useRef, useState} from 'react';
+import {Animated, Image, Pressable, StyleSheet, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {casesIndex} from '../data';
 import {useCaseStore} from '../store/caseStore';
 import {StyledText} from '../components/StyledText';
-
-const {width, height} = Dimensions.get('window');
+import {CaseMeta, CaseStatus} from '../types/case';
+import {CaseDot} from '../components/CaseDot';
 
 export default function CaseMapScreen() {
+  const cardAnim = useRef(new Animated.Value(0)).current;
+
   const navigation = useNavigation<any>();
 
   const loadCase = useCaseStore(s => s.loadCase);
   const progress = useCaseStore(s => s.casesProgress);
   const activeCaseId = useCaseStore(s => s.activeCaseId);
+  const addLog = useCaseStore(s => s.addLog);
+  const hasLogFlag = useCaseStore(s => s.hasLogFlag);
+  const setLogFlag = useCaseStore(s => s.setLogFlag);
 
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(casesIndex[0].id);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const selectedCase = casesIndex.find(
     c => c.id === selectedCaseId
   );
 
+
+  useEffect(() => {
+    if (!hasLogFlag('map_intro')) {
+      addLog(
+        'evidence',
+        'Город выглядит спокойным. Но я знаю — тишина здесь обманчива.',
+        'story'
+      );
+      setLogFlag('map_intro');
+    }
+  }, []);
+
+  useEffect(() => {
+    Animated.timing(cardAnim, {
+      toValue: selectedCase ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true
+    }).start();
+  }, [selectedCase]);
+
+  function isUnlocked(c: CaseMeta) {
+    if (!c.unlockConditions.length) return true;
+    return c.unlockConditions.every(cond => {
+      if (cond.type === 'caseCompleted') {
+        return progress[cond.caseId]?.status === 'completed';
+      }
+      return true;
+    });
+  }
+
+  function getCaseMapState(caseMeta?: CaseMeta): CaseStatus {
+    if (!caseMeta) return 'locked';
+
+    const done = progress[caseMeta.id]?.status === 'completed';
+    const isActive = activeCaseId === caseMeta.id;
+
+    if (done) return 'completed';
+    if (isActive) return 'active';
+
+    return isUnlocked(caseMeta) ? 'available' : 'locked';
+  }
+
+  const state = getCaseMapState(selectedCase);
+  const actionLabel =
+    state === 'active' ? 'Продолжить' :
+      state === 'available' ? 'Начать дело' :
+        state === 'completed' ? 'Завершено' :
+          'Недоступно';
+
+  const actionDisabled = state === 'locked' || state === 'completed';
+
   return (
     <SafeAreaView style={styles.container}>
+      <Pressable
+        style={styles.settingsButton}
+        onPress={() => setSettingsOpen(true)}
+      >
+        <Image source={require('../assets/icon-settings.png')} />
+      </Pressable>
+
       <StyledText style={styles.name}>The Quiet City</StyledText>
       <View style={styles.map}>
-        <Image
-          source={require('../../assets/world_map_dark.png')}
-          style={styles.mapImage}
-          resizeMode="cover"
-        />
-        {/*<View*/}
-        {/*  style={{*/}
-        {/*    ...StyleSheet.absoluteFillObject,*/}
-        {/*    backgroundColor: '#1d3460',*/}
-        {/*    opacity: 0.9*/}
-        {/*  }}*/}
-        {/*/>*/}
+        <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedCaseId(null)}>
+          <Image
+            source={require('../../assets/world_map_dark.png')}
+            style={styles.mapImage}
+            resizeMode="cover"
+          />
+        </Pressable>
 
         {casesIndex.map(c => {
-          const state = progress[c.id]?.status ?? 'available';
-
-          const isActive = c.id === activeCaseId;
-          const isSelected = c.id === selectedCaseId;
-
-          const left = c.position.x * width;
-          const top = c.position.y * height;
+          const state = getCaseMapState(c);
 
           return (
-            <Pressable
+            <CaseDot
               key={c.id}
-              style={[
-                styles.casePoint,
-                {left, top},
-                state === 'completed' && styles.completed,
-                isActive && styles.active,
-                isSelected && styles.selected
-              ]}
-              onPress={() => setSelectedCaseId(c.id)}
+              state={state}
+              caseMeta={c}
+              selectedCaseId={selectedCaseId}
+              setSelectedCaseId={setSelectedCaseId}
             />
           );
         })}
@@ -66,13 +115,28 @@ export default function CaseMapScreen() {
 
       {/* Нижняя панель дела */}
       {selectedCase && (
-        <View style={styles.panel}>
+        <View
+          style={[
+            styles.panel,
+            {
+              opacity: cardAnim,
+              transform: [
+                {
+                  translateY: cardAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [20, 0]
+                  })
+                }
+              ]
+            }
+          ]}
+        >
           <StyledText style={styles.title}>
             {selectedCase.title}
           </StyledText>
 
           <StyledText style={styles.meta}>
-            Region: {selectedCase.region}
+            Region: {selectedCase.description}
           </StyledText>
 
           <DifficultyDots
@@ -81,13 +145,28 @@ export default function CaseMapScreen() {
 
           <Pressable
             style={styles.button}
+            disabled={actionDisabled}
             onPress={() => {
-              loadCase(selectedCase.id);
-              navigation.navigate('EvidenceList');
+              if (state === 'locked') {
+                if (!hasLogFlag(`locked_attempt_${selectedCase.id}`)) {
+                  addLog(
+                    'system',
+                    'Я тороплюсь. Без нужного опыта это расследование только запутает меня.',
+                    'hint'
+                  );
+                  setLogFlag(`locked_attempt_${selectedCase.id}`);
+                }
+                return;
+              }
+
+              if (state === 'available' || state === 'active') {
+                loadCase(selectedCase.id);
+                navigation.navigate('EvidenceList');
+              }
             }}
           >
             <StyledText style={styles.buttonText}>
-              Take case
+              {actionLabel}
             </StyledText>
           </Pressable>
         </View>
@@ -115,46 +194,42 @@ function DifficultyDots({value}: {value: number}) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#100d13',
+    backgroundColor: '#100d13'
   },
   name: {
     fontFamily: 'Cormorant',
     textAlign: 'center',
     color: 'white',
     fontSize: 55,
-    paddingTop: 80,
+    paddingTop: 80
+  },
+  settingsButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    width: 32,
+    height: 32
   },
   map: {
-    flex: 1,
+    flex: 1
   },
   mapImage: {
     position: 'absolute',
     width: '100%',
-    height: '100%',
-  },
-  casePoint: {
-    position: 'absolute',
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#e0e0e0'
-  },
-  completed: {
-    backgroundColor: '#4caf50'
-  },
-  active: {
-    backgroundColor: "#ff9800",
-    shadowColor: "#ff9800",
-    shadowOpacity: 0.6,
-    shadowRadius: 8
-  },
-  selected: {
-    borderWidth: 2,
-    borderColor: '#ffd700'
+    height: '100%'
   },
   panel: {
-    backgroundColor: '#1f1f1f',
-    padding: 16
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 24,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(15, 18, 25, 0.95)',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10
   },
   title: {
     color: 'white',

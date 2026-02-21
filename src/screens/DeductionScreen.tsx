@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {FlatList, Pressable, StyleSheet, Text, View} from 'react-native';
+import {FlatList, Pressable, StyleSheet, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import {useCaseStore} from '../store/caseStore';
@@ -25,7 +25,7 @@ export default function DeductionScreen() {
   const addLog = useCaseStore(s => s.addLog);
 
   useEffect(() => {
-    addLog('dialogue', `Interview started`);
+    addLog('dialogue', `Interview started`, 'story');
   }, []);
 
 

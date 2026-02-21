@@ -13,7 +13,6 @@ import EvidenceDetailScreen from './src/screens/EvidenceDetailScreen';
 import DeductionScreen from './src/screens/DeductionScreen';
 import CaseResultScreen from './src/screens/CaseResultScreen';
 import InvestigationLogScreen from './src/screens/InvestigationLogScreen';
-import CaseListScreen from './src/screens/CaseListScreen';
 import MindBoardScreen from './src/screens/MindBoardScreen';
 import CaseMapScreen from './src/screens/CaseMapScreen';
 
@@ -60,11 +59,6 @@ export default function App() {
           name="Main"
           component={CaseMapScreen}
           options={{headerShown: false}}
-        />
-        <Stack.Screen
-          name="Cases"
-          component={CaseListScreen}
-          options={{title: 'Investigations'}}
         />
         <Stack.Screen
           name="EvidenceList"

@@ -1,5 +1,5 @@
 import {useMemo, useState} from 'react';
-import {LayoutChangeEvent, Pressable, StyleSheet, Text, View} from 'react-native';
+import {LayoutChangeEvent, Pressable, StyleSheet, View} from 'react-native';
 import Svg, {Line} from 'react-native-svg';
 import {useCaseStore} from '../store/caseStore';
 import CaseStatus from '../components/CaseStatus';
@@ -208,8 +208,8 @@ const styles = StyleSheet.create({
   },
   selected: {
     borderWidth: 2,
-    borderColor: "#ffd700",
-    shadowColor: "#ffd700",
+    borderColor: '#ffd700',
+    shadowColor: '#ffd700',
     shadowOpacity: 0.4,
     shadowRadius: 6
   },
@@ -236,5 +236,5 @@ const styles = StyleSheet.create({
   },
   supports: {color: '#4caf50'},
   contradicts: {color: '#f44336'},
-  related: {color: '#2196f3'},
+  related: {color: '#2196f3'}
 });
