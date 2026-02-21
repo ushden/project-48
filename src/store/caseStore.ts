@@ -15,10 +15,12 @@ import {
   LogImportance,
   LogType,
   Rating,
+  SceneProgress,
   TimeCosts,
   TutorialStep
 } from '../types/case';
 import {caseMapping, casesIndex} from '../data';
+import {hasRequiredScenePoints} from '../engine/checkScenePoints';
 
 const STORAGE_KEY = 'detective_game_save_v1';
 
@@ -55,11 +57,8 @@ type CaseState = {
   },
   hasUnreadLogEntries: boolean;
   logFlags: Record<string, boolean>;
-  sceneProgress: {
-    [sceneId: string]: {
-      discoveredPoints: string[];
-    };
-  };
+  sceneProgress: SceneProgress;
+  requiredScenePoints?: string[];
 
   loadGame: () => void;
   loadCase: (caseId: string) => void
@@ -375,14 +374,29 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     return get().unlockedEvidence.has(id);
   },
 
-  checkDeduction: (selected) => {
+  checkDeduction: (selected): boolean => {
     const state = get();
-    const correct =
-      state.case?.deduction.correctEvidence ?? [];
+    const correct = state.case?.deduction.correctEvidence ?? [];
 
     if (state.tutorial.enabled && state.tutorial.step === 3) {
       state.advanceTutorial(4);
       state.addLog('system', tutorialMessages[4]);
+    }
+
+    if (
+      !hasRequiredScenePoints(
+        get().requiredScenePoints,
+        get().sceneProgress
+      )
+    ) {
+      get().addLog(
+        'deduction',
+        'Мне не хватает наблюдений с места происшествия.',
+        'hint'
+      );
+
+      // decrementAttempts();
+      return false;
     }
 
     const reasoning = state.checkReasoning();
@@ -391,7 +405,6 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       selected.length === correct.length &&
       selected.every(id => correct.includes(id));
 
-    // логическая ошибка — мгновенный провал
     if (reasoning.penalty) {
       set({
         deductionState: {

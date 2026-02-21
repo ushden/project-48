@@ -122,13 +122,17 @@ export type Hint = {
 
 export type TutorialStep = 0 | 1 | 2 | 3 | 4 | 5;
 
+export type SceneCondition =
+  | {type: 'pointDiscovered'; pointId: string}
+  | {type: 'evidenceUnlocked'; evidenceId: string};
+export type SceneProgress = Record<string, {discoveredPoints: string[]}>;
 export type ScenePoint = {
   id: string;
   x: number;
   y: number;
   type: 'evidence' | 'log' | 'choice' | 'empty';
   payload?: any;
-  discovered?: boolean;
+  conditions?: SceneCondition[];
 };
 
 export type CrimeScene = {

@@ -49,6 +49,8 @@
       "ev2",
       "ev4"
     ],
+    "requiredEvidence": ["work_report_draft"],
+    "requiredScenePoints": ["window"],
     "requiredLinks": [
       {
         "fromId": "ev2",
@@ -159,6 +161,12 @@
         "x": 0.6,
         "y": 0.75,
         "type": "evidence",
+        "conditions": [
+          {
+            "type": "pointDiscovered",
+            "pointId": "desk"
+          }
+        ],
         "payload": {
           "evidenceId": "shredded_note"
         }
