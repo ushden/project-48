@@ -6,21 +6,16 @@ import {
   BoardLink,
   BoardLinkType,
   CaseData,
-  CaseStatus,
-  DeductionLinkRule,
-  DeductionStatus,
-  Ending,
-  Hint,
+  CaseEnding,
+  DeductionResult,
   LogEntry,
   LogImportance,
   LogType,
   Rating,
-  SceneProgress,
-  TimeCosts,
   TutorialStep
 } from '../types/case';
-import {caseMapping, casesIndex} from '../data';
-import {hasRequiredScenePoints} from '../engine/checkScenePoints';
+import {casesData, casesMeta} from '../data';
+import {evidenceIndex} from '../data/evidence';
 
 const STORAGE_KEY = 'detective_game_save_v1';
 
@@ -35,51 +30,49 @@ export const tutorialMessages: Record<TutorialStep, string> = {
 
 type CaseState = {
   case: CaseData | null;
-  unlockedEvidence: Set<string>;
-  deductionState: {
-    attemptsLeft: number,
-    status: DeductionStatus;
-  },
-  log: LogEntry[],
-  casesProgress: Record<string, {
-    status: CaseStatus
-    rating?: Rating
-  }>;
   activeCaseId: string | null;
+
+  unlockedEvidence: Set<string>;
+  sceneProgress: Record<string, {discoveredPoints: string[]}>;
+
+  deductionState: {
+    attemptsLeft: number;
+    status: DeductionResult; // 'idle' | 'failed' | 'success'
+  };
+
+  log: LogEntry[];
+  logFlags: Record<string, boolean>;
+  hasUnreadLogEntries: boolean;
+
+  casesProgress: Record<string, {status: string; rating?: string}>;
+
   boardLinks: BoardLink[];
-  nodePositions: Record<string, {x: number, y: number}>;
+  nodePositions: Record<string, {x: number; y: number}>;
+
   timeLeft: number;
   timerStatus: 'running' | 'stopped';
+
   hintsUsed: number;
-  tutorial: {
-    enabled: boolean,
-    step: TutorialStep
-  },
-  hasUnreadLogEntries: boolean;
-  logFlags: Record<string, boolean>;
-  sceneProgress: SceneProgress;
-  requiredScenePoints?: string[];
+  tutorial: {enabled: boolean; step: TutorialStep};
 
   loadGame: () => void;
   loadCase: (caseId: string) => void
   completeCase: () => void
   unlockEvidence: (id: string) => void
   isUnlocked: (id: string) => boolean
-  checkDeduction: (selected: string[]) => boolean
+  submitDeduction: (deductionId: string) => {success: boolean, result: DeductionResult}
   calculateRating: () => Rating
   addLog: (type: LogType, text: string, importance?: LogImportance) => void
-  getEnding: () => Ending | null
+  getEnding: () => CaseEnding | null
   addBoardLink: (fromId: string, toId: string, type: BoardLinkType) => void;
   removeBoardLink: (fromId: string, toId: string) => void;
   saveGame: () => Promise<void>;
   resetGame: () => Promise<void>;
   resetDeduction: () => void;
-  checkReasoning: () => {ok: boolean, penalty: boolean};
   setNodePosition: (id: string, x: number, y: number) => void;
-  maybeAddHint: (reason: 'wrong' | 'missingLinks') => void;
   calculateLinkScore: () => number;
   startTimer: () => void;
-  spendTime: (action: keyof TimeCosts) => void;
+  spendTime: (amount: number) => void;
   advanceTutorial: (step: TutorialStep) => void;
   finishTutorial: () => void;
   markLogAsRead: () => void;
@@ -138,14 +131,6 @@ const hydrateState = (data: CaseState): Partial<CaseState> => ({
   timerStatus: data.timerStatus ?? 'stopped',
   hasUnreadLogEntries: data.hasUnreadLogEntries ?? false
 });
-
-const hasLink = (links: BoardLink[], rule: DeductionLinkRule) =>
-  links.some(
-    l =>
-      l.fromId === rule.fromId &&
-      l.toId === rule.toId &&
-      l.type === rule.type
-  );
 
 export const useCaseStore = create<CaseState>((set, get) => ({
   case: null,
@@ -207,19 +192,17 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       }
     }),
 
-  spendTime: (action: keyof TimeCosts) => {
-    const state = get();
-    const cost = state.case?.timeCosts[action] ?? 0;
+  spendTime: (amount: number) =>
+    set(state => {
+      if (state.timerStatus !== 'running') return state;
 
-    set({
-      timeLeft: Math.max(0, state.timeLeft - cost)
-    });
+      const newTime = Math.max(0, state.timeLeft - amount);
 
-    state.addLog(
-      'system',
-      `Time spent: ${cost}s`
-    );
-  },
+      return {
+        timeLeft: newTime,
+        timerStatus: newTime === 0 ? 'stopped' : state.timerStatus
+      };
+    }),
   startTimer: () => {
     if (get().timerStatus === 'running') return;
 
@@ -285,11 +268,11 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     const savedState = hydrateState(data);
 
     if (savedState.activeCaseId) {
-      savedState.case = caseMapping[savedState.activeCaseId];
+      savedState.case = casesData[savedState.activeCaseId];
     } else {
-      const [firstCase] = casesIndex;
+      const [firstCase] = casesMeta;
 
-      savedState.case = caseMapping[firstCase.id];
+      savedState.case = casesData[firstCase.id];
     }
 
     set(state => ({
@@ -299,29 +282,30 @@ export const useCaseStore = create<CaseState>((set, get) => ({
   },
 
   loadCase: (caseId: string) => {
-    const caseData = caseMapping[caseId];
-    const activeCaseId = get().activeCaseId;
+    const caseData = casesData[caseId];
 
-    if (activeCaseId === caseId) return;
+    if (!caseData) return;
 
     set({
       case: caseData,
       activeCaseId: caseId,
-      unlockedEvidence: new Set(
-        caseData.evidence.filter(e => e.unlocked).map(e => e.id)
-      ),
+
+      unlockedEvidence: new Set(),
+      sceneProgress: {},
+
       deductionState: {
         attemptsLeft: 3,
         status: 'idle'
       },
-      log: [],
-      timeLeft: caseData.timeLimit,
-      timerStatus: 'running'
-    });
 
-    if (get().tutorial.enabled) {
-      get().addLog('system', tutorialMessages[0]);
-    }
+      boardLinks: [],
+      nodePositions: {},
+
+      timeLeft: caseData.timeLimit,
+      timerStatus: 'stopped',
+
+      hintsUsed: 0
+    });
   },
   completeCase: () => {
     const {activeCaseId, calculateRating, finishTutorial} = get();
@@ -341,121 +325,51 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     finishTutorial();
   },
 
-  unlockEvidence: (id) => {
+  unlockEvidence: (evidenceId: string) =>
     set(state => {
-      if (state.tutorial.enabled && state.tutorial.step === 0) {
-        state.advanceTutorial(1);
-        state.addLog('system', tutorialMessages[1]);
-      }
+      if (state.unlockedEvidence.has(evidenceId)) return state;
 
-      if (state.unlockedEvidence.has(id)) return state;
+      const evidence = evidenceIndex[evidenceId];
+      if (!evidence) return state;
 
-      const updated = new Set(state.unlockedEvidence);
-      updated.add(id);
-
-      const evidence = state.case?.evidence.find(e => e.id === id);
+      state.addLog(
+        'evidence',
+        `${evidence.title}: ${evidence.description}`,
+        'normal'
+      );
 
       return {
-        unlockedEvidence: updated,
-        log: [
-          ...state.log,
-          {
-            id: crypto.randomUUID(),
-            type: 'evidence',
-            text: `New evidence found: ${evidence?.title}`,
-            timestamp: Date.now()
-          }
-        ]
+        unlockedEvidence: new Set(state.unlockedEvidence).add(evidenceId)
       };
-    });
-  },
+    }),
 
   isUnlocked: (id) => {
     return get().unlockedEvidence.has(id);
   },
 
-  checkDeduction: (selected): boolean => {
-    const state = get();
-    const correct = state.case?.deduction.correctEvidence ?? [];
+  submitDeduction: (deductionId: string) => {
+    const currentCase = get().case;
+    if (!currentCase) return {success: false, result: 'failed'};
 
-    if (state.tutorial.enabled && state.tutorial.step === 3) {
-      state.advanceTutorial(4);
-      state.addLog('system', tutorialMessages[4]);
-    }
+    const ded = currentCase.deductions.find(d => d.id === deductionId);
+    if (!ded) return {success: false, result: 'failed'};
 
-    if (
-      !hasRequiredScenePoints(
-        get().requiredScenePoints,
-        get().sceneProgress
+    // проверка улик
+    const hasEvidence = ded.requiredEvidence?.every(e =>
+      get().unlockedEvidence.has(e)
+    ) ?? true;
+
+    // проверка scenePoints
+    const hasPoints = ded.requiredScenePoints?.every(p =>
+      Object.values(get().sceneProgress).some(sp =>
+        sp.discoveredPoints.includes(p)
       )
-    ) {
-      get().addLog(
-        'deduction',
-        'Мне не хватает наблюдений с места происшествия.',
-        'hint'
-      );
+    ) ?? true;
 
-      // decrementAttempts();
-      return false;
-    }
+    // финальный результат
+    const success = hasEvidence && hasPoints;
 
-    const reasoning = state.checkReasoning();
-
-    const evidenceCorrect =
-      selected.length === correct.length &&
-      selected.every(id => correct.includes(id));
-
-    if (reasoning.penalty) {
-      set({
-        deductionState: {
-          attemptsLeft: 0,
-          status: 'failed'
-        }
-      });
-      state.addLog(
-        'deduction',
-        'Critical logical error in reasoning'
-      );
-      state.maybeAddHint('wrong');
-
-      return false;
-    }
-
-    if (evidenceCorrect && reasoning.ok) {
-      set({
-        deductionState: {
-          ...state.deductionState,
-          status: 'solved'
-        }
-      });
-      state.addLog(
-        'deduction',
-        'Correct conclusion with solid reasoning'
-      );
-      return true;
-    }
-
-    // частично правильно — теряем попытку
-    const attemptsLeft = state.deductionState.attemptsLeft - 1;
-
-    if (attemptsLeft === 1) {
-      get().addLog('system', 'One last chance. Choose carefully.');
-    }
-
-    set({
-      deductionState: {
-        attemptsLeft,
-        status: attemptsLeft <= 0 ? 'failed' : 'idle'
-      }
-    });
-
-    state.addLog(
-      'deduction',
-      'Conclusion lacks sufficient reasoning'
-    );
-    state.maybeAddHint('missingLinks');
-
-    return false;
+    return {success, result: ded.result};
   },
 
   resetDeduction: () =>
@@ -513,47 +427,20 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     const caseData = state.case;
     if (!caseData) return null;
 
-    const rating = state.calculateRating();
-    const timeLeft = state.timeLeft;
-    const links = state.boardLinks;
-    const deduction = caseData.deduction;
+    const deductionResult = state.deductionState.status;
+    return caseData.endings.find(e => e.condition === deductionResult) ?? null;
+  },
 
-    return deduction.endings.find(ending => {
-      const c = ending.conditions;
-      if (!c) return true;
+  loadIntroDialogue: () => {
+    const caseData = get().case;
+    if (!caseData) return;
 
-      if (c.minRating && rating !== c.minRating) return false;
-
-      if (c.minTimeLeft && timeLeft < c.minTimeLeft) return false;
-
-      if (c.noHintsUsed && state.hintsUsed > 0) return false;
-
-      if (c.noForbiddenLinks && deduction.forbiddenLinks) {
-        const hasForbidden = deduction.forbiddenLinks.some(rule =>
-          links.some(
-            l =>
-              l.fromId === rule.fromId &&
-              l.toId === rule.toId &&
-              l.type === rule.type
-          )
-        );
-        if (hasForbidden) return false;
+    // запускаем в диалоге, UI уже покажет текст
+    caseData.introDialogue.lines.forEach(line => {
+      if (line.log) {
+        get().addLog(line.log.type, line.text, line.log.importance);
       }
-
-      if (c.requiredLinksComplete && deduction.requiredLinks) {
-        const allPresent = deduction.requiredLinks.every(rule =>
-          links.some(
-            l =>
-              l.fromId === rule.fromId &&
-              l.toId === rule.toId &&
-              l.type === rule.type
-          )
-        );
-        if (!allPresent) return false;
-      }
-
-      return true;
-    }) ?? null;
+    });
   },
 
   addBoardLink: (
@@ -583,93 +470,26 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     )
   })),
 
-  checkReasoning: () => {
-    const state = get();
-    const deduction = state.case?.deduction;
-    if (!deduction) return {ok: true, penalty: false};
-
-    const links = state.boardLinks;
-
-    // обязательные связи
-    if (deduction.requiredLinks) {
-      const missing = deduction.requiredLinks.some(
-        rule => !hasLink(links, rule)
-      );
-      if (missing) {
-        return {ok: false, penalty: false};
-      }
-    }
-
-    // запрещённые связи
-    if (deduction.forbiddenLinks) {
-      const hasForbidden = deduction.forbiddenLinks.some(
-        rule => hasLink(links, rule)
-      );
-      if (hasForbidden) {
-        return {ok: false, penalty: true};
-      }
-    }
-
-    return {ok: true, penalty: false};
-  },
-
-  maybeAddHint: (reason: 'wrong' | 'missingLinks') => {
-    const state = get();
-    const hints = state.case?.deduction.hints;
-    if (!hints) return;
-
-    let condition: Hint['condition'];
-
-    if (reason === 'wrong') condition = 'onWrongDeduction';
-    else condition = 'onMissingLinks';
-
-    const hint = hints.find(h => h.condition === condition);
-    if (!hint) return;
-
-    // чтобы не спамить одной и той же подсказкой
-    const alreadyShown = state.log.some(
-      l => l.type === 'system' && l.text === hint.text
-    );
-    if (alreadyShown) return;
-
-    state.addLog('system', hint.text);
-    set(state => ({
-      hintsUsed: state.hintsUsed + 1
-    }));
-  },
-
   calculateLinkScore: () => {
-    const state = get();
-    const deduction = state.case?.deduction;
-    if (!deduction) return 0;
+    const {boardLinks} = get();
+
+    if (boardLinks.length === 0) return 0;
 
     let score = 0;
 
-    // бонусы
-    deduction.requiredLinks?.forEach(rule => {
-      const has = state.boardLinks.some(
-        l =>
-          l.fromId === rule.fromId &&
-          l.toId === rule.toId &&
-          l.type === rule.type
-      );
-      if (has) {
-        score += rule.score ?? 1;
+    for (const link of boardLinks) {
+      switch (link.type) {
+        case 'supports':
+          score += 2;
+          break;
+        case 'contradicts':
+          score += 1;
+          break;
+        case 'related':
+          score += 1;
+          break;
       }
-    });
-
-    // штрафы
-    deduction.forbiddenLinks?.forEach(rule => {
-      const has = state.boardLinks.some(
-        l =>
-          l.fromId === rule.fromId &&
-          l.toId === rule.toId &&
-          l.type === rule.type
-      );
-      if (has) {
-        score -= Math.abs(rule.score ?? 1);
-      }
-    });
+    }
 
     return score;
   }
