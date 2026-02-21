@@ -1,41 +1,42 @@
-import { View, Text, FlatList, StyleSheet } from "react-native"
-import { useCaseStore } from "../store/caseStore"
+import {FlatList, StyleSheet, Text, View} from 'react-native';
+import {useCaseStore} from '../store/caseStore';
+import {StyledText} from '../components/StyledText';
 
 export default function InvestigationLogScreen() {
-  const log = useCaseStore(s => s.log)
+  const log = useCaseStore(s => s.log);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
+      <StyledText style={styles.title}>
         Investigation Log
-      </Text>
+      </StyledText>
 
       <FlatList
         data={log}
         keyExtractor={item => item.id}
-        renderItem={({ item }) => (
+        renderItem={({item}) => (
           <View style={styles.entry}>
-            <Text style={styles.type}>
+            <StyledText style={styles.type}>
               [{item.type.toUpperCase()}]
-            </Text>
-            <Text style={styles.text}>
+            </StyledText>
+            <StyledText style={styles.text}>
               {item.text}
-            </Text>
+            </StyledText>
           </View>
         )}
       />
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#121212"
+    backgroundColor: '#121212'
   },
   title: {
-    color: "white",
+    color: 'white',
     fontSize: 20,
     marginBottom: 16
   },
@@ -43,10 +44,10 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   type: {
-    color: "#888",
+    color: '#888',
     fontSize: 12
   },
   text: {
-    color: "#ddd"
+    color: '#ddd'
   }
-})
+});

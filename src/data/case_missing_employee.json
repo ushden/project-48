@@ -1,6 +1,12 @@
 {
   "id": "case_missing_employee",
   "title": "Пропавший сотрудник",
+  "timeLimit": 600,
+  "timeCosts": {
+    "openEvidence": 10,
+    "dialogueStep": 15,
+    "wrongDeduction": 30
+  },
   "evidence": [
     {
       "id": "chat_01",
@@ -15,6 +21,13 @@
       "title": "Отчёт о доступе",
       "content": "…",
       "unlocked": false
+    },
+    {
+      "id": "report_02",
+      "type": "document",
+      "title": "Отчёт о доступе 2",
+      "content": "…",
+      "unlocked": true
     }
   ],
   "dialogues": [
@@ -47,6 +60,19 @@
     ],
     "endings": [
       {
+        "id": "true_secret",
+        "title": "The Unspoken Truth",
+        "text": "You uncovered not only what happened, but why everyone tried to hide it.",
+        "secret": true,
+        "conditions": {
+          "minRating": "S",
+          "requiredLinksComplete": true,
+          "noForbiddenLinks": true,
+          "minTimeLeft": 120,
+          "noHintsUsed": true
+        }
+      },
+      {
         "id": "true",
         "title": "Truth Revealed",
         "requiredEvidence": ["ev2", "ev4"],
@@ -66,6 +92,18 @@
         "requiredEvidence": [],
         "minRating": "F",
         "text": "The case remains unresolved. An innocent person may suffer."
+      }
+    ],
+    "hints": [
+      {
+        "id": "hint_links",
+        "condition": "onMissingLinks",
+        "text": "Some facts may need to be connected to see the full picture."
+      },
+      {
+        "id": "hint_wrong",
+        "condition": "onWrongDeduction",
+        "text": "Your conclusion feels premature. Re-evaluate the strongest evidence."
       }
     ]
   }

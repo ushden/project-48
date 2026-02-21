@@ -1,91 +1,98 @@
-import {useEffect, useState} from "react"
-import {FlatList, Pressable, StyleSheet, Text, View} from "react-native"
-import {useNavigation} from "@react-navigation/native"
+import {useEffect, useState} from 'react';
+import {FlatList, Pressable, StyleSheet, Text, View} from 'react-native';
+import {useNavigation} from '@react-navigation/native';
 
-import {useCaseStore} from "../store/caseStore"
+import {useCaseStore} from '../store/caseStore';
+import CaseStatus from '../components/CaseStatus';
+import {StyledText} from '../components/StyledText';
 
-function CenterMessage({text}: { text: string }) {
+function CenterMessage({text}: {text: string}) {
   return (
     <View style={styles.center}>
-      <Text style={{color: "white"}}>{text}</Text>
+      <StyledText style={{color: 'white'}}>{text}</StyledText>
     </View>
-  )
+  );
 }
 
 export default function DeductionScreen() {
-  const navigation = useNavigation<any>()
+  const navigation = useNavigation<any>();
 
-  const caseData = useCaseStore(s => s.case)
-  const isUnlocked = useCaseStore(s => s.isUnlocked)
-  const checkDeduction = useCaseStore(s => s.checkDeduction)
-  const deductionState = useCaseStore(s => s.deductionState)
-  const addLog = useCaseStore(s => s.addLog)
+  const caseData = useCaseStore(s => s.case);
+  const isUnlocked = useCaseStore(s => s.isUnlocked);
+  const checkDeduction = useCaseStore(s => s.checkDeduction);
+  const spendTime = useCaseStore(s => s.spendTime);
+  const deductionState = useCaseStore(s => s.deductionState);
+  const addLog = useCaseStore(s => s.addLog);
 
   useEffect(() => {
-    addLog("dialogue", `Interview started`)
-  }, [])
+    addLog('dialogue', `Interview started`);
+  }, []);
 
 
-  const [selected, setSelected] = useState<string[]>([])
+  const [selected, setSelected] = useState<string[]>([]);
 
   if (!caseData) {
     return (
       <View style={styles.center}>
-        <Text style={{color: "white"}}>
+        <StyledText style={{color: 'white'}}>
           Loading deduction…
-        </Text>
+        </StyledText>
       </View>
-    )
+    );
   }
 
-  if (deductionState.status === "failed") {
+  if (deductionState.status === 'failed') {
     return (
-      <CenterMessage text="Investigation failed."/>
-    )
+      <CenterMessage text="Investigation failed." />
+    );
   }
 
-  if (deductionState.status === "solved") {
+  if (deductionState.status === 'solved') {
     return (
-      <CenterMessage text="Case solved!"/>
-    )
+      <CenterMessage text="Case solved!" />
+    );
   }
 
   const unlockedEvidence = caseData.evidence.filter(e =>
     isUnlocked(e.id)
-  )
+  );
 
   const toggle = (id: string) => {
     setSelected(prev =>
       prev.includes(id)
         ? prev.filter(x => x !== id)
         : [...prev, id]
-    )
-  }
+    );
+  };
 
   const onCheck = () => {
-    const correct = checkDeduction(selected)
+    const correct = checkDeduction(selected);
 
-    navigation.navigate("CaseResult", {
+    spendTime('wrongDeduction');
+
+    navigation.navigate('CaseResult', {
       success: correct
-    })
+    });
   };
 
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
+      <CaseStatus />
+
+      <StyledText style={styles.title}>
         Deduction Board
-      </Text>
-      <Text style={styles.attempts}>
+      </StyledText>
+      <StyledText style={styles.attempts}>
         Attempts left: {deductionState.attemptsLeft}
-      </Text>
+      </StyledText>
 
       <FlatList
         data={unlockedEvidence}
         keyExtractor={e => e.id}
         renderItem={({item}) => {
 
-          const active = selected.includes(item.id)
+          const active = selected.includes(item.id);
 
           return (
             <Pressable
@@ -95,11 +102,11 @@ export default function DeductionScreen() {
               ]}
               onPress={() => toggle(item.id)}
             >
-              <Text style={styles.text}>
+              <StyledText style={styles.text}>
                 {item.title}
-              </Text>
+              </StyledText>
             </Pressable>
-          )
+          );
         }}
       />
 
@@ -107,60 +114,60 @@ export default function DeductionScreen() {
         style={styles.check}
         onPress={onCheck}
       >
-        <Text style={styles.checkText}>
+        <StyledText style={styles.checkText}>
           Check deduction
-        </Text>
+        </StyledText>
       </Pressable>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#121212"
+    backgroundColor: '#121212'
   },
   title: {
-    color: "white",
+    color: 'white',
     fontSize: 20,
     marginBottom: 16
   },
   card: {
     padding: 14,
     marginVertical: 6,
-    backgroundColor: "#1f1f1f",
+    backgroundColor: '#1f1f1f',
     borderRadius: 8
   },
   active: {
-    backgroundColor: "#3a3a3a"
+    backgroundColor: '#3a3a3a'
   },
   text: {
-    color: "white"
+    color: 'white'
   },
   check: {
-    backgroundColor: "#2a2a2a",
+    backgroundColor: '#2a2a2a',
     padding: 14,
     marginTop: 16,
     borderRadius: 8
   },
   checkText: {
-    color: "white",
-    textAlign: "center"
+    color: 'white',
+    textAlign: 'center'
   },
   result: {
-    color: "#aaa",
-    textAlign: "center",
+    color: '#aaa',
+    textAlign: 'center',
     marginTop: 12
   },
   center: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#121212"
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#121212'
   },
   attempts: {
-    color: "#aaa",
+    color: '#aaa',
     marginBottom: 10
-  },
-})
+  }
+});

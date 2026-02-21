@@ -3,6 +3,7 @@ import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import {useCaseStore} from '../store/caseStore';
+import {StyledText} from '../components/StyledText';
 
 export default function CaseResultScreen() {
   const navigation = useNavigation<any>();
@@ -10,29 +11,35 @@ export default function CaseResultScreen() {
 
   if (!ending) return null;
 
-  const completeCase = useCaseStore(s => s.completeCase)
+  const completeCase = useCaseStore(s => s.completeCase);
 
   useEffect(() => {
-    completeCase()
-  }, [])
+    completeCase();
+  }, []);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        {ending.title}
-      </Text>
+      {ending.secret && (
+        <StyledText style={styles.secret}>
+          Secret Ending Unlocked
+        </StyledText>
+      )}
 
-      <Text style={styles.text}>
+      <StyledText style={styles.title}>
+        {ending.title}
+      </StyledText>
+
+      <StyledText style={styles.text}>
         {ending.text}
-      </Text>
+      </StyledText>
 
       <Pressable
         style={styles.button}
         onPress={() => navigation.popToTop()}
       >
-        <Text style={styles.buttonText}>
+        <StyledText style={styles.buttonText}>
           Close case
-        </Text>
+        </StyledText>
       </Pressable>
     </View>
   );
@@ -44,6 +51,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
     backgroundColor: '#121212'
+  },
+  secret: {
+    color: "#ffd700",
+    textAlign: "center",
+    marginBottom: 12
   },
   title: {
     color: 'white',

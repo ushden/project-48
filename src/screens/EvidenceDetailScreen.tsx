@@ -1,71 +1,78 @@
-import { View, Text, ScrollView, StyleSheet } from "react-native"
-import { useRoute } from "@react-navigation/native"
-import { useCaseStore } from "../store/caseStore"
+import {useEffect} from 'react';
+import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import {useRoute} from '@react-navigation/native';
+import {useCaseStore} from '../store/caseStore';
+import {StyledText} from '../components/StyledText';
 
 export default function EvidenceDetailScreen() {
-  const route = useRoute<any>()
-  const { evidenceId } = route.params
+  const route = useRoute<any>();
+  const {evidenceId} = route.params;
 
-  const caseData = useCaseStore(s => s.case)
+  const caseData = useCaseStore(s => s.case);
+  const spendTime = useCaseStore(s => s.spendTime);
+
+  useEffect(() => {
+    spendTime('openEvidence');
+  }, []);
+
 
   const evidence = caseData?.evidence.find(
     e => e.id === evidenceId
-  )
+  );
 
   if (!evidence) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: "white" }}>
+        <StyledText style={{color: 'white'}}>
           Evidence not found
-        </Text>
+        </StyledText>
       </View>
-    )
+    );
   }
 
   return (
     <ScrollView style={styles.container}>
-
-      <Text style={styles.title}>
+      <StyledText style={styles.title}>
         {evidence.title}
-      </Text>
+      </StyledText>
 
-      <Text style={styles.type}>
+      <StyledText style={styles.type}>
         {evidence.type}
-      </Text>
+      </StyledText>
 
-      <Text style={styles.content}>
+      <StyledText style={styles.content}>
         {evidence.content}
-      </Text>
+      </StyledText>
 
     </ScrollView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#121212"
+    backgroundColor: '#121212'
   },
   title: {
-    color: "white",
+    color: 'white',
     fontSize: 22,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginBottom: 8
   },
   type: {
-    color: "#aaa",
+    color: '#aaa',
     marginBottom: 16
   },
   content: {
-    color: "#ddd",
+    color: '#ddd',
     fontSize: 16,
     lineHeight: 22
   },
   center: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#121212"
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#121212'
   }
-})
+});

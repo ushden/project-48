@@ -1,98 +1,178 @@
-import {Pressable, StyleSheet, Text, View} from 'react-native';
+import {useMemo, useState} from 'react';
+import {LayoutChangeEvent, Pressable, StyleSheet, Text, View} from 'react-native';
 import Svg, {Line} from 'react-native-svg';
-
 import {useCaseStore} from '../store/caseStore';
-
-const linkColors = {
-  supports: '#4caf50',
-  contradicts: '#f44336',
-  related: '#2196f3'
-};
+import CaseStatus from '../components/CaseStatus';
+import {StyledText} from '../components/StyledText';
 
 export default function MindBoardScreen() {
   const caseData = useCaseStore(s => s.case);
-  const nodePositions = useCaseStore(s => s.nodePositions);
-  const boardLinks = useCaseStore(s => s.boardLinks);
   const isUnlocked = useCaseStore(s => s.isUnlocked);
-  const addLink = useCaseStore(s => s.addBoardLink);
-  const setNodePosition = useCaseStore(s => s.setNodePosition);
 
-  if (!caseData) return null;
+  const boardLinks = useCaseStore(s => s.boardLinks);
+  const nodePositions = useCaseStore(s => s.nodePositions);
+  const setNodePosition = useCaseStore(s => s.setNodePosition);
+  const addLink = useCaseStore(s => s.addBoardLink);
+
+  const [linkFrom, setLinkFrom] = useState<string | null>(null);
+  const [linkTo, setLinkTo] = useState<string | null>(null);
+
+  if (!caseData) {
+    return (
+      <View style={styles.center}>
+        <StyledText style={{color: 'white'}}>No active case</StyledText>
+      </View>
+    );
+  }
 
   const evidence = caseData.evidence.filter(e =>
     isUnlocked(e.id)
   );
 
+  const linkColors = {
+    supports: '#4caf50',
+    contradicts: '#f44336',
+    related: '#2196f3'
+  } as const;
+
+  const onCardLayout =
+    (id: string) =>
+      (event: LayoutChangeEvent) => {
+        const {x, y, width, height} =
+          event.nativeEvent.layout;
+
+        setNodePosition(
+          id,
+          x + width / 2,
+          y + height / 2
+        );
+      };
+
+  const onCardPress = (id: string) => {
+    if (!linkFrom) {
+      setLinkFrom(id);
+      return;
+    }
+
+    if (linkFrom && !linkTo && id !== linkFrom) {
+      setLinkTo(id);
+    }
+  };
+
+  const resetSelection = () => {
+    setLinkFrom(null);
+    setLinkTo(null);
+  };
+
+  const lines = useMemo(() => {
+    return boardLinks
+      .map((link, index) => {
+        const from = nodePositions[link.fromId];
+        const to = nodePositions[link.toId];
+
+        if (!from || !to) return null;
+
+        return (
+          <Line
+            key={index}
+            x1={from.x}
+            y1={from.y}
+            x2={to.x}
+            y2={to.y}
+            stroke={linkColors[link.type]}
+            strokeWidth={2}
+          />
+        );
+      })
+      .filter(Boolean);
+  }, [boardLinks, nodePositions]);
+
   return (
     <View style={styles.container}>
+      <CaseStatus />
 
-      <Text style={styles.title}>
-        Investigation Board
-      </Text>
-
+      {/* SVG слой со связями */}
       <Svg
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       >
-        {boardLinks.map((link, i) => {
-          const from = nodePositions[link.fromId];
-          const to = nodePositions[link.toId];
-
-          if (!from || !to) return null;
-
-          return (
-            <Line
-              key={i}
-              x1={from.x}
-              y1={from.y}
-              x2={to.x}
-              y2={to.y}
-              stroke={linkColors[link.type]}
-              strokeWidth={2}
-            />
-          );
-        })}
+        {lines}
       </Svg>
 
-      {evidence.map(e => (
-        <View
-          key={e.id}
-          style={styles.card}
-          onLayout={event => {
-            const {x, y, width, height} = event.nativeEvent.layout;
-            setNodePosition(
-              e.id,
-              x + width / 2,
-              y + height / 2
-            );
-          }}
-        >
-          <Text style={styles.cardTitle}>
-            {e.title}
-          </Text>
+      <StyledText style={styles.title}>
+        Investigation Board
+      </StyledText>
 
-          <Pressable
-            style={styles.linkButton}
-            onPress={() =>
-              addLink(e.id, evidence[0].id, 'related')
-            }
-          >
-            <Text style={styles.linkText}>
-              Link to first evidence
-            </Text>
-          </Pressable>
+      {/* Панель создания связи */}
+      {linkFrom && linkTo && (
+        <View style={styles.linkPanel}>
+          <StyledText style={styles.panelTitle}>
+            Create link
+          </StyledText>
+
+          <View style={styles.panelButtons}>
+            <Pressable
+              style={styles.panelButton}
+              onPress={() => {
+                addLink(linkFrom, linkTo, 'supports');
+                resetSelection();
+              }}
+            >
+              <StyledText style={styles.supports}>
+                Supports
+              </StyledText>
+            </Pressable>
+
+            <Pressable
+              style={styles.panelButton}
+              onPress={() => {
+                addLink(linkFrom, linkTo, 'contradicts');
+                resetSelection();
+              }}
+            >
+              <StyledText style={styles.contradicts}>
+                Contradicts
+              </StyledText>
+            </Pressable>
+
+            <Pressable
+              style={styles.panelButton}
+              onPress={() => {
+                addLink(linkFrom, linkTo, 'related');
+                resetSelection();
+              }}
+            >
+              <StyledText style={styles.related}>
+                Related
+              </StyledText>
+            </Pressable>
+          </View>
         </View>
-      ))}
+      )}
 
-      <Text style={styles.subtitle}>
-        Links
-      </Text>
+      {/* Сетка улик */}
+      <View style={styles.grid}>
+        {evidence.map(e => {
+          const isSelected =
+            e.id === linkFrom || e.id === linkTo;
 
-      {boardLinks.map((l, i) => (
-        <Text key={i} style={styles.link}>
-          {l.fromId} → {l.toId} ({l.type})
-        </Text>
-      ))}
+          return (
+            <Pressable
+              key={e.id}
+              onPress={() => onCardPress(e.id)}
+              onLayout={onCardLayout(e.id)}
+              style={[
+                styles.card,
+                isSelected && styles.selected
+              ]}
+            >
+              <StyledText style={styles.cardTitle}>
+                {e.title}
+              </StyledText>
+            </Pressable>
+          );
+        })}
+      </View>
 
     </View>
   );
@@ -101,41 +181,60 @@ export default function MindBoardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    backgroundColor: '#121212',
+    padding: 16
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#121212'
   },
   title: {
     color: 'white',
     fontSize: 20,
-    marginBottom: 16
+    marginBottom: 12
   },
-  subtitle: {
-    color: '#aaa',
-    marginTop: 20,
-    marginBottom: 8
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12
   },
   card: {
+    width: '48%',
     backgroundColor: '#1f1f1f',
     padding: 12,
-    borderRadius: 8,
-    marginBottom: 10
+    borderRadius: 8
+  },
+  selected: {
+    borderWidth: 2,
+    borderColor: "#ffd700",
+    shadowColor: "#ffd700",
+    shadowOpacity: 0.4,
+    shadowRadius: 6
   },
   cardTitle: {
     color: 'white',
-    fontSize: 14,
-    marginBottom: 6
+    fontSize: 14
   },
-  linkButton: {
-    backgroundColor: '#2a2a2a',
-    padding: 6,
-    borderRadius: 6
+  linkPanel: {
+    backgroundColor: '#1f1f1f',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12
   },
-  linkText: {
-    color: '#aaa',
-    fontSize: 12
+  panelTitle: {
+    color: 'white',
+    marginBottom: 8
   },
-  link: {
-    color: '#888',
-    fontSize: 12
-  }
+  panelButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  panelButton: {
+    padding: 8
+  },
+  supports: {color: '#4caf50'},
+  contradicts: {color: '#f44336'},
+  related: {color: '#2196f3'},
 });
