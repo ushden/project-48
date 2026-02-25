@@ -1,3 +1,5 @@
+import {ImageSourcePropType} from 'react-native';
+
 export type Evidence = {
   id: string
   title: string
@@ -17,32 +19,12 @@ export type CaseUnlockCondition =
   | {type: 'requiredLinks'; count: number}
   | {type: 'secretEndingUnlocked'; caseId: string};
 
-export type DialogueLine = {
-  text: string
-  unlocks?: string[]
-}
-
-export type Dialogue = {
-  npc: string
-  lines: DialogueLine[]
-}
-
 export type EndingConditions = {
   minRating?: Rating
   requiredLinksComplete?: boolean
   noForbiddenLinks?: boolean
   minTimeLeft?: number
   noHintsUsed?: boolean
-}
-
-export type Ending = {
-  id: string
-  title: string
-  requiredEvidence: string[]
-  minRating: Rating;
-  text: string
-  secret?: boolean
-  conditions?: EndingConditions
 }
 
 export type DeductionLinkRule = {
@@ -52,13 +34,20 @@ export type DeductionLinkRule = {
   score?: number
 }
 
+export type DeductionResult = 'failed' | 'partial' | 'success' | 'idle';
+
 export type Deduction = {
-  correctEvidence: string[];
-  requiredLinks?: DeductionLinkRule[];
-  forbiddenLinks?: DeductionLinkRule[];
-  endings: Ending[];
-  hints: Hint[];
-}
+  id: string;
+  text: string;
+  requiredEvidence?: string[];
+  requiredScenePoints?: string[];
+  result: DeductionResult;
+  log?: {
+    type: LogType;
+    importance?: LogImportance;
+    text: string;
+  };
+};
 
 export type TimeCosts = {
   openEvidence: number;
@@ -66,29 +55,107 @@ export type TimeCosts = {
   wrongDeduction: number;
 }
 
+export type DialogueLine = {
+  text: string;
+  log?: {
+    type: LogType;
+    importance?: LogImportance;
+  };
+};
+
+export type DialogueBlock = {
+  id: string;
+  speaker: string;
+  lines: DialogueLine[];
+};
+
+export type Witness = {
+  id: string;
+  name: string;
+  description: string;
+  isAvailable: boolean;
+  dialogue: DialogueLine[];
+
+  isInterviewed?: boolean;
+};
+
+export type VictimPhone = {
+  messages?: {
+    from: string;
+    text: string;
+    log?: {
+      type: LogType;
+      importance?: LogImportance;
+    };
+  }[];
+  notes?: {
+    text: string;
+    log?: {
+      type: LogType;
+      importance?: LogImportance;
+    };
+  }[];
+};
+
+export type CaseEnding = {
+  id: string;
+  condition: DeductionResult;
+  rating: 'S' | 'A' | 'B' | 'C' | 'F';
+  text: string;
+};
+
+export type CaseHubProgressStatus = 'locked' | 'available' | 'visited';
+
+export type CaseHubProgress = {
+  crimeScene: CaseHubProgressStatus;
+  witnesses: CaseHubProgressStatus;
+  victimPhone: CaseHubProgressStatus;
+};
+
+export type CaseHubType = Record<keyof CaseHubProgress, CaseHubProgressStatus>;
+
+export type Portrait = {
+  source: ImageSourcePropType;
+  position?: 'left' | 'right' | 'center';
+};
+
+export type WitnessMeta = {
+  id: string;
+  listPortrait: Portrait;
+  dialoguePortrait: Portrait;
+};
+
+export type CrimeSceneMeta = {
+  id: string;
+  portrait: Portrait;
+};
+
 export type CaseMeta = {
   id: string;
-  title: string;
-  description: string;
-  region: string;
-  position: {
-    x: number
-    y: number
-  };
-  difficulty: 1 | 2 | 3 | 4 | 5;
-  unlockConditions: CaseUnlockCondition[];
+  witness: WitnessMeta[];
+  crimeScene: CrimeSceneMeta[];
+  introDialogue: Portrait;
 }
 
 export type CaseData = {
   id: string;
   title: string;
+  description: string;
+  difficulty: 1 | 2 | 3 | 4 | 5;
   timeLimit: number;
-  timeCosts: TimeCosts;
-  evidence: Evidence[];
-  dialogues: Dialogue[];
-  deduction: Deduction;
-  crimeScene?: CrimeScene;
-}
+  position: {
+    x: number
+    y: number
+  };
+  unlockConditions: CaseUnlockCondition[];
+  introDialogue: DialogueBlock;
+  crimeScene: CrimeScene;
+  witnesses: Witness[];
+  victimPhone: VictimPhone;
+  deductions: Deduction[];
+  endings: CaseEnding[];
+  caseHub: CaseHubType;
+};
 
 export type DeductionStatus = 'idle' | 'solved' | 'failed';
 

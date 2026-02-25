@@ -5,7 +5,7 @@ export function StyledText(props: TextProps) {
     <Text
       {...props}
       style={[
-        {fontFamily: 'LibreRegular', color: '#EAEAEA'},
+        {fontFamily: 'LibreFranklinRegular', color: '#EAEAEA'},
         props.style
       ]}
     />

@@ -1,13 +1,22 @@
 import {useEffect, useRef, useState} from 'react';
-import {Animated, Image, Pressable, StyleSheet, View} from 'react-native';
+import {Animated, Image, Platform, Pressable, StyleSheet, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
-import {casesIndex} from '../data';
+import {casesData, casesMeta} from '../data';
 import {useCaseStore} from '../store/caseStore';
 import {StyledText} from '../components/StyledText';
-import {CaseMeta, CaseStatus} from '../types/case';
+import {CaseData, CaseStatus} from '../types/case';
 import {CaseDot} from '../components/CaseDot';
+import {StatusBar} from 'expo-status-bar';
+
+function GameTitle() {
+  return (
+    <View style={styles.nameContainer} pointerEvents="none">
+      <StyledText style={styles.name}>The Quiet City</StyledText>
+    </View>
+  );
+}
 
 export default function CaseMapScreen() {
   const cardAnim = useRef(new Animated.Value(0)).current;
@@ -21,19 +30,19 @@ export default function CaseMapScreen() {
   const hasLogFlag = useCaseStore(s => s.hasLogFlag);
   const setLogFlag = useCaseStore(s => s.setLogFlag);
 
-  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(casesIndex[0].id);
+  // delete after test
+  const resetGame = useCaseStore(s => s.resetGame);
+
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(casesMeta[0].id);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const selectedCase = casesIndex.find(
-    c => c.id === selectedCaseId
-  );
-
+  const selectedCase = casesData[selectedCaseId || ''];
 
   useEffect(() => {
     if (!hasLogFlag('map_intro')) {
       addLog(
         'evidence',
-        'Город выглядит спокойным. Но я знаю — тишина здесь обманчива.',
+        'Город выглядит спокойным. Но я знаю - тишина здесь обманчива.',
         'story'
       );
       setLogFlag('map_intro');
@@ -48,26 +57,26 @@ export default function CaseMapScreen() {
     }).start();
   }, [selectedCase]);
 
-  function isUnlocked(c: CaseMeta) {
+  function isUnlocked(c: CaseData) {
     if (!c.unlockConditions.length) return true;
     return c.unlockConditions.every(cond => {
       if (cond.type === 'caseCompleted') {
-        return progress[cond.caseId]?.status === 'completed';
+        return !!progress[cond.caseId]?.completed;
       }
       return true;
     });
   }
 
-  function getCaseMapState(caseMeta?: CaseMeta): CaseStatus {
-    if (!caseMeta) return 'locked';
+  function getCaseMapState(caseData?: CaseData): CaseStatus {
+    if (!caseData) return 'locked';
 
-    const done = progress[caseMeta.id]?.status === 'completed';
-    const isActive = activeCaseId === caseMeta.id;
+    const done = !!progress[caseData.id]?.completed;
+    const isActive = activeCaseId === caseData.id;
 
     if (done) return 'completed';
     if (isActive) return 'active';
 
-    return isUnlocked(caseMeta) ? 'available' : 'locked';
+    return isUnlocked(caseData) ? 'available' : 'locked';
   }
 
   const state = getCaseMapState(selectedCase);
@@ -81,14 +90,23 @@ export default function CaseMapScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar hidden />
       <Pressable
         style={styles.settingsButton}
         onPress={() => setSettingsOpen(true)}
       >
-        <Image source={require('../assets/icon-settings.png')} />
+        <Image source={require('../../assets/settings.png')} style={{width: 40, height: 40}} />
       </Pressable>
 
-      <StyledText style={styles.name}>The Quiet City</StyledText>
+      <Pressable
+        style={styles.resetButton}
+        onPress={resetGame}
+      >
+        <StyledText>RESTTTTTTTTTT</StyledText>
+      </Pressable>
+
+      <GameTitle />
+
       <View style={styles.map}>
         <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedCaseId(null)}>
           <Image
@@ -98,14 +116,15 @@ export default function CaseMapScreen() {
           />
         </Pressable>
 
-        {casesIndex.map(c => {
-          const state = getCaseMapState(c);
+        {casesMeta.map(c => {
+          const _case = casesData[c.id];
+          const state = getCaseMapState(_case);
 
           return (
             <CaseDot
-              key={c.id}
+              key={_case.id}
               state={state}
-              caseMeta={c}
+              caseData={_case}
               selectedCaseId={selectedCaseId}
               setSelectedCaseId={setSelectedCaseId}
             />
@@ -115,7 +134,7 @@ export default function CaseMapScreen() {
 
       {/* Нижняя панель дела */}
       {selectedCase && (
-        <View
+        <Animated.View
           style={[
             styles.panel,
             {
@@ -136,7 +155,7 @@ export default function CaseMapScreen() {
           </StyledText>
 
           <StyledText style={styles.meta}>
-            Region: {selectedCase.description}
+            Опис: {selectedCase.description}
           </StyledText>
 
           <DifficultyDots
@@ -147,6 +166,8 @@ export default function CaseMapScreen() {
             style={styles.button}
             disabled={actionDisabled}
             onPress={() => {
+              const caseMeta = casesMeta.find(c => c.id === selectedCaseId);
+
               if (state === 'locked') {
                 if (!hasLogFlag(`locked_attempt_${selectedCase.id}`)) {
                   addLog(
@@ -159,9 +180,25 @@ export default function CaseMapScreen() {
                 return;
               }
 
-              if (state === 'available' || state === 'active') {
-                loadCase(selectedCase.id);
-                navigation.navigate('EvidenceList');
+              if (state === 'active') {
+                navigation.navigate('CaseHub');
+              }
+
+              if (state === 'available') {
+                const caseData = loadCase(selectedCase.id);
+
+                if (!caseData) {
+                  console.log('Something went wrong');
+
+                  return;
+                }
+
+                navigation.replace('Dialogue', {
+                  portrait: caseMeta?.introDialogue,
+                  dialogue: caseData.introDialogue,
+                  onFinishAction: 'navigate',
+                  nextScreen: 'CaseHub'
+                });
               }
             }}
           >
@@ -169,7 +206,7 @@ export default function CaseMapScreen() {
               {actionLabel}
             </StyledText>
           </Pressable>
-        </View>
+        </Animated.View>
       )}
     </SafeAreaView>
   );
@@ -196,19 +233,42 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#100d13'
   },
+  nameContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 80,
+    left: 0,
+    right: 0,
+    zIndex: 99,
+
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24
+  },
   name: {
     fontFamily: 'Cormorant',
-    textAlign: 'center',
-    color: 'white',
     fontSize: 55,
-    paddingTop: 80
+    letterSpacing: 1.2,
+    textAlign: 'center',
+    color: '#d8d8d8',
+    opacity: 0.9
+  },
+  resetButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    borderWidth: 1,
+    borderColor: 'red',
+    zIndex: 99,
+    width: 48,
+    height: 48
   },
   settingsButton: {
     position: 'absolute',
     top: 20,
-    right: 20,
-    width: 32,
-    height: 32
+    right: 0,
+    zIndex: 99,
+    width: 48,
+    height: 48
   },
   map: {
     flex: 1

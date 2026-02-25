@@ -1,87 +1,145 @@
-import {useEffect} from 'react';
-import {Pressable, StyleSheet, View} from 'react-native';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-
 import {useCaseStore} from '../store/caseStore';
-import {StyledText} from '../components/StyledText';
 
 export default function CaseResultScreen() {
   const navigation = useNavigation<any>();
-  const ending = useCaseStore(s => s.getEnding());
 
-  if (!ending) return null;
+  const {
+    case: caseData,
+    getEnding,
+    calculateRating,
+    deductionState,
+    calculateLinkScore,
+    completeActiveCase
+  } = useCaseStore();
 
-  const completeCase = useCaseStore(s => s.completeCase);
+  if (!caseData) return null;
 
-  useEffect(() => {
-    completeCase();
-  }, []);
+  const ending = getEnding();
+  const rating = calculateRating();
+  const linkScore = calculateLinkScore();
+
+  const summary = buildSummary({
+    attemptsLeft: deductionState.attemptsLeft,
+    linkScore
+  });
+
+  const handleContinue = () => {
+    completeActiveCase();
+    navigation.replace('CaseMap');
+  };
 
   return (
     <View style={styles.container}>
-      {ending.secret && (
-        <StyledText style={styles.secret}>
-          Secret Ending Unlocked
-        </StyledText>
-      )}
+      <Text style={styles.closed}>Дело закрыто</Text>
 
-      <StyledText style={styles.title}>
-        {ending.title}
-      </StyledText>
+      <Text style={styles.title}>{caseData.title}</Text>
 
-      <StyledText style={styles.text}>
-        {ending.text}
-      </StyledText>
+      <View style={styles.ratingWrapper}>
+        <Text style={styles.rating}>{rating}</Text>
+      </View>
 
-      <Pressable
-        style={styles.button}
-        onPress={() => navigation.popToTop()}
-      >
-        <StyledText style={styles.buttonText}>
-          Close case
-        </StyledText>
+      <Text style={styles.ending}>{ending?.text}</Text>
+
+      <View style={styles.divider} />
+
+      <Text style={styles.summary}>{summary}</Text>
+
+      <Pressable style={styles.button} onPress={handleContinue}>
+        <Text style={styles.buttonText}>
+          Вернуться к карте
+        </Text>
       </Pressable>
     </View>
   );
 }
 
+function buildSummary(data: {
+  attemptsLeft: number;
+  linkScore: number;
+}) {
+  const {attemptsLeft, linkScore} = data;
+
+  if (attemptsLeft === 3)
+    return 'Вы не торопились с выводами и внимательно изучили детали.';
+
+  if (attemptsLeft === 2)
+    return 'Вы сомневались, но продолжили расследование.';
+
+  if (attemptsLeft <= 1)
+    return 'Вы действовали решительно, рискуя ошибиться.';
+
+  if (linkScore > 6)
+    return 'Ваши рассуждения были связными и последовательными.';
+
+  return 'Вы дошли до истины, но путь был непростым.';
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#121212'
+    backgroundColor: '#0e0e0e',
+    padding: 24,
+    justifyContent: 'space-between'
   },
-  secret: {
-    color: '#ffd700',
-    textAlign: 'center',
-    marginBottom: 12
+
+  closed: {
+    color: '#777',
+    fontSize: 13,
+    textTransform: 'uppercase',
+    letterSpacing: 1
   },
+
   title: {
-    color: 'white',
+    color: '#fff',
     fontSize: 22,
-    textAlign: 'center',
-    marginBottom: 12
+    fontWeight: '600',
+    marginTop: 8
   },
-  text: {},
-  description: {
-    color: '#aaa',
-    textAlign: 'center',
-    marginBottom: 24
+
+  ratingWrapper: {
+    alignSelf: 'center',
+    marginVertical: 24
   },
+
   rating: {
-    color: '#ffd700',
-    fontSize: 20,
-    textAlign: 'center',
-    marginBottom: 20
+    fontSize: 64,
+    fontWeight: '700',
+    color: '#e5e5e5'
   },
-  button: {
-    backgroundColor: '#2a2a2a',
-    padding: 14,
-    borderRadius: 8
-  },
-  buttonText: {
-    color: 'white',
+
+  ending: {
+    color: '#ddd',
+    fontSize: 17,
+    lineHeight: 24,
     textAlign: 'center'
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: '#222',
+    marginVertical: 24
+  },
+
+  summary: {
+    color: '#999',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20
+  },
+
+  button: {
+    marginTop: 24,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: '#e5e5e5',
+    alignItems: 'center'
+  },
+
+  buttonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '600'
   }
 });

@@ -1,97 +1,122 @@
-import {useState} from 'react';
-import {Pressable, StyleSheet, View} from 'react-native';
-import {tutorialMessages, useCaseStore} from '../store/caseStore';
-import {StyledText} from '../components/StyledText';
+import {useEffect, useState} from 'react';
+import {Image, Pressable, StyleSheet, Text, View} from 'react-native';
+import {useCaseStore} from '../store/caseStore';
+import {RouteProp} from '@react-navigation/native';
+import {RootStackParamList} from '../types/navigation';
+import {StackNavigationProp} from '@react-navigation/stack';
 
-export default function DialogueScreen() {
-  const caseData = useCaseStore(s => s.case);
-  const tutorial = useCaseStore(s => s.tutorial);
-  const unlockEvidence = useCaseStore(s => s.unlockEvidence);
-  const spendTime = useCaseStore(s => s.spendTime);
-  const advanceTutorial = useCaseStore(s => s.advanceTutorial);
-  const addLog = useCaseStore(s => s.addLog);
+type GameScreenRouteProp = RouteProp<RootStackParamList, 'Dialogue'>;
+type GameScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Dialogue'>;
 
-  const dialogue = caseData?.dialogues[0];
+interface Props {
+  route: GameScreenRouteProp;
+  navigation: GameScreenNavigationProp;
+}
 
+export default function DialogueScreen({route, navigation}: Props) {
+  const {dialogue, portrait, onFinishAction, nextScreen, nextParams, witnessState} = route.params;
   const [index, setIndex] = useState(0);
+  const addLog = useCaseStore(s => s.addLog);
+  const setWitnessFlag = useCaseStore(s => s.setWitnessFlag);
 
-  if (!dialogue) {
-    return (
-      <View style={styles.center}>
-        <StyledText style={{color: 'white'}}>No dialogue</StyledText>
-      </View>
-    );
-  }
+  useEffect(() => {
+    const removeListener = navigation.addListener('beforeRemove', e => {
+      const type = (e.data.action.type || '').toLowerCase();
+
+      if (!type || (type !== 'replace' && type !== 'navigate')) {
+        e.preventDefault();
+      }
+    });
+
+    return () => {
+      removeListener();
+    };
+  }, [navigation]);
 
   const line = dialogue.lines[index];
 
-  const nextLine = () => {
-    line.unlocks?.forEach(unlockEvidence);
-
-    if (index < dialogue.lines.length - 1) {
-      setIndex(index + 1);
+  const next = () => {
+    if (line?.log) {
+      addLog(line.log.type, line.text, line.log.importance);
     }
 
-    spendTime('dialogueStep');
+    if (index + 1 < dialogue.lines.length) {
+      setIndex(i => i + 1);
+    } else {
+      if (witnessState) {
+        setWitnessFlag(witnessState.witnessId, witnessState.key, witnessState.value);
+      }
 
-    if (tutorial.enabled && tutorial.step === 1) {
-      advanceTutorial(2);
-      addLog('system', tutorialMessages[2], 'hint');
+      if (onFinishAction === 'replace') {
+        navigation.replace(nextScreen!, nextParams);
+      } else if (onFinishAction === 'navigate') {
+        navigation.navigate(nextScreen!, nextParams);
+      } else {
+        navigation.goBack();
+      }
     }
   };
 
+  if (!line) return null;
+
   return (
-    <View style={styles.container}>
+    <Pressable style={styles.container} onPress={next}>
+      {portrait && (
+        <Image
+          source={portrait.source}
+          resizeMode="contain"
+          style={[
+            styles.portrait,
+            !portrait.position ? styles.center : portrait.position === 'right'
+              ? styles.right
+              : styles.left
+          ]}
+        />
+      )}
 
-      <StyledText style={styles.npc}>
-        {dialogue.npc}
-      </StyledText>
-
-      <StyledText style={styles.text}>
-        {line.text}
-      </StyledText>
-
-      <Pressable style={styles.button} onPress={nextLine}>
-        <StyledText style={styles.buttonText}>
-          {index < dialogue.lines.length - 1
-            ? 'Continue'
-            : 'End Dialogue'}
-        </StyledText>
-      </Pressable>
-
-    </View>
+      <View style={styles.bubble}>
+        <Text style={styles.speaker}>
+          {dialogue.speaker}
+        </Text>
+        <Text style={styles.text}>
+          {line.text}
+        </Text>
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'space-between',
-    padding: 20,
-    backgroundColor: '#121212'
+    justifyContent: 'flex-end',
+    padding: 24,
+    backgroundColor: '#000'
   },
-  npc: {
-    color: '#aaa',
-    fontSize: 14
+  speaker: {
+    color: '#fff',
+    marginBottom: 12
+  },
+  portrait: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0
+  },
+  center: {},
+  left: {},
+  right: {},
+  bubble: {
+    backgroundColor: '#111',
+    padding: 40,
+    paddingLeft: 18,
+    paddingRight: 1,
+    borderRadius: 12
   },
   text: {
-    color: 'white',
-    fontSize: 18,
-    marginVertical: 20
-  },
-  button: {
-    backgroundColor: '#2a2a2a',
-    padding: 14,
-    borderRadius: 8
-  },
-  buttonText: {
-    color: 'white',
-    textAlign: 'center'
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#121212'
+    color: '#fff',
+    fontSize: 16,
+    lineHeight: 22
   }
 });

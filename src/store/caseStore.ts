@@ -7,6 +7,9 @@ import {
   BoardLinkType,
   CaseData,
   CaseEnding,
+  CaseHubProgress,
+  CaseHubProgressStatus,
+  CaseHubType,
   DeductionResult,
   LogEntry,
   LogImportance,
@@ -34,6 +37,7 @@ type CaseState = {
 
   unlockedEvidence: Set<string>;
   sceneProgress: Record<string, {discoveredPoints: string[]}>;
+  caseHub: CaseHubType;
 
   deductionState: {
     attemptsLeft: number;
@@ -44,7 +48,12 @@ type CaseState = {
   logFlags: Record<string, boolean>;
   hasUnreadLogEntries: boolean;
 
-  casesProgress: Record<string, {status: string; rating?: string}>;
+  casesProgress: Record<string, {
+    completed: boolean;
+    rating?: string;
+    endingId?: string;
+    completedAt?: number;
+  }>;
 
   boardLinks: BoardLink[];
   nodePositions: Record<string, {x: number; y: number}>;
@@ -55,11 +64,13 @@ type CaseState = {
   hintsUsed: number;
   tutorial: {enabled: boolean; step: TutorialStep};
 
+  witnessesFlags: Record<string, {isInterviewed: boolean}>;
+
   loadGame: () => void;
-  loadCase: (caseId: string) => void
-  completeCase: () => void
+  loadCase: (caseId: string) => CaseData | undefined;
+  completeActiveCase: () => void
   unlockEvidence: (id: string) => void
-  isUnlocked: (id: string) => boolean
+  isUnlockedEvidence: (id: string) => boolean
   submitDeduction: (deductionId: string) => {success: boolean, result: DeductionResult}
   calculateRating: () => Rating
   addLog: (type: LogType, text: string, importance?: LogImportance) => void
@@ -79,6 +90,8 @@ type CaseState = {
   hasLogFlag: (key: string) => boolean;
   setLogFlag: (key: string) => void;
   markScenePoint: (sceneId: string, pointId: string) => void;
+  updateCaseHubObjectStatus: (key: keyof CaseHubProgress, status: CaseHubProgressStatus) => void;
+  setWitnessFlag: (id: string, key: 'isInterviewed', value: boolean) => void;
 };
 
 const upgrade = (r: Rating): Rating => {
@@ -102,6 +115,7 @@ const serializeState = (state: CaseState) => ({
   deductionState: state.deductionState,
   log: state.log,
   logFlags: state.logFlags,
+  caseHub: state.caseHub,
   boardLinks: state.boardLinks,
   nodePositions: state.nodePositions,
   tutorial: state.tutorial,
@@ -109,7 +123,8 @@ const serializeState = (state: CaseState) => ({
   timeLeft: state.timeLeft,
   timerStatus: state.timerStatus,
   hasUnreadLogEntries: state.hasUnreadLogEntries,
-  sceneProgress: state.sceneProgress
+  sceneProgress: state.sceneProgress,
+  witnessesFlags: state.witnessesFlags
 });
 
 const hydrateState = (data: CaseState): Partial<CaseState> => ({
@@ -126,6 +141,8 @@ const hydrateState = (data: CaseState): Partial<CaseState> => ({
   tutorial: data.tutorial ?? {},
   logFlags: data.logFlags ?? {},
   sceneProgress: data.sceneProgress ?? {},
+  caseHub: data.caseHub ?? {},
+  witnessesFlags: data.witnessesFlags ?? {},
   hintsUsed: data.hintsUsed ?? 0,
   timeLeft: data.timeLeft ?? 0,
   timerStatus: data.timerStatus ?? 'stopped',
@@ -152,8 +169,29 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     step: 0
   },
   hasUnreadLogEntries: false,
-  logFlags: {},
   sceneProgress: {},
+  caseHub: {} as CaseHubType,
+
+  logFlags: {},
+  witnessesFlags: {},
+
+  setWitnessFlag: (id: string, key, value: boolean) => set(state => ({
+    witnessesFlags: {
+      ...state.witnessesFlags,
+      [id]: {
+        ...state.witnessesFlags[id],
+        [key]: value
+      },
+    },
+  })),
+
+  updateCaseHubObjectStatus: (key: keyof CaseHubProgress, status: CaseHubProgressStatus) =>
+    set(state => ({
+      caseHub: {
+        ...state.caseHub,
+        [key]: status
+      }
+    })),
 
   markScenePoint: (sceneId, pointId) =>
     set(state => ({
@@ -250,6 +288,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
 
   resetGame: async () => {
     await AsyncStorage.removeItem(STORAGE_KEY);
+    console.log('RESETED GAME');
   },
   saveGame: async () => {
     const state = get();
@@ -281,7 +320,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     }));
   },
 
-  loadCase: (caseId: string) => {
+  loadCase: (caseId: string): CaseData | undefined => {
     const caseData = casesData[caseId];
 
     if (!caseData) return;
@@ -289,6 +328,8 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     set({
       case: caseData,
       activeCaseId: caseId,
+
+      caseHub: caseData.caseHub,
 
       unlockedEvidence: new Set(),
       sceneProgress: {},
@@ -306,23 +347,29 @@ export const useCaseStore = create<CaseState>((set, get) => ({
 
       hintsUsed: 0
     });
+
+    return caseData;
   },
-  completeCase: () => {
-    const {activeCaseId, calculateRating, finishTutorial} = get();
+  completeActiveCase: () => {
+    set(state => {
+      if (!state.activeCaseId) return state;
 
-    if (!activeCaseId) return;
+      const caseId = state.activeCaseId;
 
-    set(state => ({
-      casesProgress: {
-        ...state.casesProgress,
-        [activeCaseId]: {
-          status: 'completed',
-          rating: calculateRating()
+      return {
+        activeCaseId: null,
+
+        casesProgress: {
+          ...state.casesProgress,
+          [caseId]: {
+            completed: true,
+            rating: state.calculateRating(),
+            endingId: state.getEnding()?.id,
+            completedAt: Date.now()
+          }
         }
-      }
-    }));
-
-    finishTutorial();
+      };
+    });
   },
 
   unlockEvidence: (evidenceId: string) =>
@@ -343,7 +390,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       };
     }),
 
-  isUnlocked: (id) => {
+  isUnlockedEvidence: (id) => {
     return get().unlockedEvidence.has(id);
   },
 
@@ -410,6 +457,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
 
   addLog: (type: LogType, text: string, importance?: LogImportance) =>
     set(state => ({
+      hasUnreadLogEntries: true,
       log: [
         ...state.log,
         {
@@ -429,18 +477,6 @@ export const useCaseStore = create<CaseState>((set, get) => ({
 
     const deductionResult = state.deductionState.status;
     return caseData.endings.find(e => e.condition === deductionResult) ?? null;
-  },
-
-  loadIntroDialogue: () => {
-    const caseData = get().case;
-    if (!caseData) return;
-
-    // запускаем в диалоге, UI уже покажет текст
-    caseData.introDialogue.lines.forEach(line => {
-      if (line.log) {
-        get().addLog(line.log.type, line.text, line.log.importance);
-      }
-    });
   },
 
   addBoardLink: (

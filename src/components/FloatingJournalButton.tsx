@@ -1,15 +1,34 @@
-import { Pressable, StyleSheet, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { useCaseStore } from '../store/caseStore';
-import { StyledText } from './StyledText';
+import {Animated, Image, Pressable, StyleSheet, View} from 'react-native';
+import {useNavigation} from '@react-navigation/native';
+import {useCaseStore} from '../store/caseStore';
+import {useEffect, useRef} from 'react';
 
 export function FloatingJournalButton() {
+  const pulse = useRef(new Animated.Value(1)).current;
+  const scale = useRef(new Animated.Value(1)).current;
+
   const navigation = useNavigation<any>();
   const hasUnread = useCaseStore(s => s.hasUnreadLogEntries);
-  const markAsRead = useCaseStore(s => s.markLogAsRead);
 
   const hiddenScreens = ['Dialogue', 'Deduction', 'MindBoard'];
-  console.log(navigation.route?.name, 'Route name');
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1.5,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+  }, []);
+
   if (hiddenScreens.includes(navigation.route?.name)) {
     return null;
   }
@@ -18,15 +37,24 @@ export function FloatingJournalButton() {
     <Pressable
       style={styles.container}
       onPress={() => {
-        markAsRead();
-        navigation.navigate('InvestigationLog');
+        navigation.navigate('Log');
       }}
     >
       <View style={styles.icon}>
-        <StyledText style={styles.iconText}>📓</StyledText>
+        <Image
+          source={require('../../assets/notebook.png')}
+          resizeMode="cover"
+        />
       </View>
 
-      {hasUnread && <View style={styles.dot} />}
+      {hasUnread && (
+        <Animated.View
+          style={[
+            styles.dot,
+            {transform: [{scale: pulse}]}
+          ]}
+        />
+      )}
     </Pressable>
   );
 }
@@ -39,26 +67,23 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   icon: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: 10,
     backgroundColor: 'rgba(20, 22, 30, 0.9)',
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconText: {
-    fontSize: 20,
+    alignItems: 'center'
   },
   dot: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#cfa96e', // тёплый, не красный
-  },
+    top: -10,
+    right: -5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#cfa96e'
+  }
 });

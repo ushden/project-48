@@ -1,30 +1,36 @@
-import case_missing_employee from './case_missing_employee.json';
+import missing_employee from './case_missing_employee.json';
 import {CaseData, CaseMeta} from '../types/case';
 
-export const casesIndex: CaseMeta[] = [
+export const casesMeta: CaseMeta[] = [
   {
-    id: 'case_missing_employee',
-    title: 'Missing Employee',
-    description: 'An employee vanished after a late-night shift.',
-    region: 'test',
-    position: {x: 0.2, y: 0.3},
-    difficulty: 1,
-    unlockConditions: [],
-  },
-  {
-    id: 'case_warehouse_incident',
-    title: 'Warehouse Incident',
-    description: 'A suspicious accident at a logistics hub.',
-    region: 'test 2',
-    position: {x: 0.5, y: 0.25},
-    difficulty: 1,
-    unlockConditions: [
-      {type: 'caseCompleted', caseId: 'case_01'},
-      {type: 'minRating', rating: 'B'}
-    ]
+    id: 'missing_employee',
+    witness: [
+      {
+        id: 'colleague',
+        listPortrait: {
+          source: require('../../assets/case_1/case_1_colleague_portrait.jpg'),
+        },
+        dialoguePortrait: {
+          source: require('../../assets/case_1/case_1_colleague.jpg'),
+        },
+      },
+      {
+        id: 'manager',
+        listPortrait: {
+          source: require('../../assets/case_1/case_1_hr_manager_portrait.jpg'),
+        },
+        dialoguePortrait: {
+          source: require('../../assets/case_1/case_1_hr_manager.jpg'),
+        },
+      },
+    ],
+    crimeScene: [],
+    introDialogue: {
+      source: require('../../assets/case_1/case_1_hr_manager.jpg'),
+    },
   }
 ];
 
-export const caseMapping: Record<string, CaseData> = {
-  'case_missing_employee': case_missing_employee as CaseData
+export const casesData: Record<string, CaseData> = {
+  'missing_employee': missing_employee as CaseData,
 };

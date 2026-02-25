@@ -1,185 +1,211 @@
 {
-  "id": "case_missing_employee",
-  "title": "Пропавший сотрудник",
-  "timeLimit": 600,
-  "timeCosts": {
-    "openEvidence": 10,
-    "dialogueStep": 15,
-    "wrongDeduction": 30
+  "id": "missing_employee",
+  "title": "Зниклий колега",
+  "description": "Сотрудник компании не вышел на связь после рабочего дня. Формально — пропажа. Неформально — слишком много несостыковок.",
+  "position": {"x": 0.1, "y": 0.4},
+  "difficulty": 1,
+  "unlockConditions": [],
+  "timeLimit": 180,
+  "caseHub": {
+    "crimeScene": "available",
+    "witnesses": "available",
+    "victimPhone": "available"
   },
-  "evidence": [
-    {
-      "id": "chat_01",
-      "type": "chat",
-      "title": "Переписка с коллегой",
-      "content": "…",
-      "unlocked": true
-    },
-    {
-      "id": "report_01",
-      "type": "document",
-      "title": "Отчёт о доступе",
-      "content": "…",
-      "unlocked": false
-    },
-    {
-      "id": "report_02",
-      "type": "document",
-      "title": "Отчёт о доступе 2",
-      "content": "…",
-      "unlocked": true
-    }
-  ],
-  "dialogues": [
-    {
-      "id": "npc_intro",
-      "npc": "Менеджер",
-      "lines": [
-        {
-          "text": "Мы потеряли связь вчера.",
-          "unlocks": [
-            "report_01"
-          ]
-        }
-      ]
-    }
-  ],
-  "deduction": {
-    "correctEvidence": [
-      "ev2",
-      "ev4"
-    ],
-    "requiredEvidence": ["work_report_draft"],
-    "requiredScenePoints": ["window"],
-    "requiredLinks": [
+  "introDialogue": {
+    "id": "intro_missing_employee",
+    "speaker": "HR-менеджер",
+    "lines": [
       {
-        "fromId": "ev2",
-        "toId": "ev4",
-        "type": "supports"
-      }
-    ],
-    "forbiddenLinks": [
-      {
-        "fromId": "ev1",
-        "toId": "ev4",
-        "type": "supports"
-      }
-    ],
-    "endings": [
-      {
-        "id": "true_secret",
-        "title": "The Unspoken Truth",
-        "text": "You uncovered not only what happened, but why everyone tried to hide it.",
-        "secret": true,
-        "conditions": {
-          "minRating": "S",
-          "requiredLinksComplete": true,
-          "noForbiddenLinks": true,
-          "minTimeLeft": 120,
-          "noHintsUsed": true
+        "text": "Спасибо, что взялись за это дело. Ситуация… странная.",
+        "log": {
+          "type": "system",
+          "importance": "story"
         }
       },
       {
-        "id": "true",
-        "title": "Truth Revealed",
-        "requiredEvidence": [
-          "ev2",
-          "ev4"
-        ],
-        "minRating": "A",
-        "text": "You uncovered the real motive and the true culprit."
+        "text": "Наш сотрудник не вышел на связь после рабочего дня. Телефон молчит. Домой он не вернулся.",
+        "log": {
+          "type": "system",
+          "importance": "story"
+        }
       },
       {
-        "id": "partial",
-        "title": "Partial Truth",
-        "requiredEvidence": [
-          "ev2"
-        ],
-        "minRating": "C",
-        "text": "You found part of the truth, but missed a key detail."
+        "text": "Он работал над важным проектом. Сроки поджимали, давление было сильным.",
+        "log": {
+          "type": "system",
+          "importance": "normal"
+        }
       },
       {
-        "id": "failure",
-        "title": "Wrong Conclusion",
-        "requiredEvidence": [],
-        "minRating": "F",
-        "text": "The case remains unresolved. An innocent person may suffer."
-      }
-    ],
-    "hints": [
-      {
-        "id": "hint_links",
-        "condition": "onMissingLinks",
-        "text": "Some facts may need to be connected to see the full picture."
-      },
-      {
-        "id": "hint_wrong",
-        "condition": "onWrongDeduction",
-        "text": "Your conclusion feels premature. Re-evaluate the strongest evidence."
+        "text": "У него было рабочее место, коллеги и служебный телефон. С этого мы и предлагаем начать.",
+        "log": {
+          "type": "system",
+          "importance": "normal"
+        }
       }
     ]
   },
   "crimeScene": {
     "id": "office_scene",
-    "image": "office_missing_employee.png",
+    "image": "office_missing_employee.webp",
     "points": [
       {
         "id": "desk",
+        "type": "evidence",
         "x": 0.45,
         "y": 0.62,
-        "type": "evidence",
         "payload": {
           "evidenceId": "work_report_draft"
         }
       },
       {
         "id": "computer",
+        "type": "log",
         "x": 0.52,
         "y": 0.48,
-        "type": "log",
         "payload": {
           "text": "Рабочий компьютер выключен. Не похоже, что он уходил в спешке."
         }
       },
       {
         "id": "window",
+        "type": "choice",
         "x": 0.78,
         "y": 0.32,
-        "type": "choice",
         "payload": {
           "flag": "noticed_open_window"
         }
       },
       {
         "id": "chair",
+        "type": "empty",
         "x": 0.38,
-        "y": 0.7,
-        "type": "empty"
+        "y": 0.7
       },
       {
         "id": "trash",
+        "type": "evidence",
         "x": 0.6,
         "y": 0.75,
-        "type": "evidence",
         "conditions": [
-          {
-            "type": "pointDiscovered",
-            "pointId": "desk"
-          }
+          { "type": "pointDiscovered", "pointId": "desk" }
         ],
         "payload": {
           "evidenceId": "shredded_note"
         }
-      },
+      }
+    ]
+  },
+  "witnesses": [
+    {
+      "id": "colleague",
+      "name": "Коллега",
+      "description": "Колега потерпілого, відносини нормальні",
+      "isAvailable": true,
+      "dialogue": [
+        {
+          "text": "Я видел его тем вечером. Он собирался домой, выглядел уставшим, но спокойным.",
+          "log": {
+            "type": "dialogue",
+            "importance": "normal"
+          }
+        },
+        {
+          "text": "Сказал, что продолжит работу завтра.",
+          "log": {
+            "type": "dialogue",
+            "importance": "normal"
+          }
+        }
+      ]
+    },
+    {
+      "id": "manager",
+      "name": "HR-менеджер",
+      "description": "Керівник потерпілого, відносини невідомі",
+      "isAvailable": true,
+      "dialogue": [
+        {
+          "text": "Давление было серьёзным. Проект задерживался, и он это понимал.",
+          "log": {
+            "type": "dialogue",
+            "importance": "normal"
+          }
+        },
+        {
+          "text": "Но я не думал, что он способен просто исчезнуть.",
+          "log": {
+            "type": "dialogue",
+            "importance": "hint"
+          }
+        }
+      ]
+    }
+  ],
+  "victimPhone": {
+    "messages": [
       {
-        "id": "clock",
-        "x": 0.3,
-        "y": 0.25,
-        "type": "log",
-        "payload": {
-          "text": "Часы остановились. Время здесь словно застыло."
+        "from": "Неизвестный контакт",
+        "text": "Если ты решился — действуй сегодня. Завтра будет поздно.",
+        "log": {
+          "type": "system",
+          "importance": "hint"
+        }
+      }
+    ],
+    "notes": [
+      {
+        "text": "Нужно всё подготовить. Исчезнуть тихо.",
+        "log": {
+          "type": "system",
+          "importance": "story"
         }
       }
     ]
-  }
+  },
+  "deductions": [
+    {
+      "id": "crime_version",
+      "text": "Он стал жертвой преступления.",
+      "requiredEvidence": ["shredded_note"],
+      "result": "fail",
+      "log": {
+        "type": "deduction",
+        "importance": "hint",
+        "text": "Я вижу тревожные детали, но они не складываются в преступление."
+      }
+    },
+    {
+      "id": "pressure_escape",
+      "text": "Он сбежал из-за давления на работе.",
+      "requiredEvidence": ["work_report_draft"],
+      "result": "partial"
+    },
+    {
+      "id": "staged_disappearance",
+      "text": "Он инсценировал исчезновение, чтобы уйти.",
+      "requiredEvidence": [
+        "work_report_draft",
+        "shredded_note"
+      ],
+      "requiredScenePoints": [
+        "window"
+      ],
+      "result": "success"
+    }
+  ],
+  "endings": [
+    {
+      "id": "normal_ending",
+      "condition": "partial",
+      "rating": "B",
+      "text": "Сотрудник был найден живым спустя несколько недель. Он уехал, не предупредив никого."
+    },
+    {
+      "id": "true_ending",
+      "condition": "success",
+      "rating": "S",
+      "text": "Он не исчез. Он ушёл так, чтобы его не стали искать."
+    }
+  ]
 }

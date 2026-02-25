@@ -1,123 +1,125 @@
-import {useEffect, useState} from 'react';
-import {FlatList, Pressable, StyleSheet, View} from 'react-native';
+import {useState} from 'react';
+import {Alert, Pressable, StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import {useCaseStore} from '../store/caseStore';
-import CaseStatus from '../components/CaseStatus';
-import {StyledText} from '../components/StyledText';
-
-function CenterMessage({text}: {text: string}) {
-  return (
-    <View style={styles.center}>
-      <StyledText style={{color: 'white'}}>{text}</StyledText>
-    </View>
-  );
-}
+import {DeductionResult} from '../types/case';
 
 export default function DeductionScreen() {
   const navigation = useNavigation<any>();
 
-  const caseData = useCaseStore(s => s.case);
-  const isUnlocked = useCaseStore(s => s.isUnlocked);
-  const checkDeduction = useCaseStore(s => s.checkDeduction);
-  const spendTime = useCaseStore(s => s.spendTime);
-  const deductionState = useCaseStore(s => s.deductionState);
-  const addLog = useCaseStore(s => s.addLog);
+  const {
+    case: caseData,
+    deductionState,
+    submitDeduction,
+    boardLinks
+  } = useCaseStore();
 
-  useEffect(() => {
-    addLog('dialogue', `Interview started`, 'story');
-  }, []);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  if (!caseData) return null;
 
-  const [selected, setSelected] = useState<string[]>([]);
+  const handleSubmit = () => {
+    if (!selectedId || isSubmitting) return;
 
-  if (!caseData) {
-    return (
-      <View style={styles.center}>
-        <StyledText style={{color: 'white'}}>
-          Loading deduction…
-        </StyledText>
-      </View>
-    );
-  }
+    // Мягкий UX-хинт, если игрок вообще не фиксировал рассуждения
+    if (boardLinks.length === 0) {
+      Alert.alert(
+        'Вы уверены?',
+        'Вы не зафиксировали свои рассуждения на доске.',
+        [
+          {text: 'Продолжить', style: 'cancel'},
+          {
+            text: 'Сделать вывод',
+            onPress: () => commitDeduction()
+          }
+        ]
+      );
+      return;
+    }
 
-  if (deductionState.status === 'failed') {
-    return (
-      <CenterMessage text="Investigation failed." />
-    );
-  }
-
-  if (deductionState.status === 'solved') {
-    return (
-      <CenterMessage text="Case solved!" />
-    );
-  }
-
-  const unlockedEvidence = caseData.evidence.filter(e =>
-    isUnlocked(e.id)
-  );
-
-  const toggle = (id: string) => {
-    setSelected(prev =>
-      prev.includes(id)
-        ? prev.filter(x => x !== id)
-        : [...prev, id]
-    );
+    commitDeduction();
   };
 
-  const onCheck = () => {
-    const correct = checkDeduction(selected);
+  const commitDeduction = () => {
+    setIsSubmitting(true);
 
-    spendTime('wrongDeduction');
+    const result = submitDeduction(selectedId!);
 
-    navigation.navigate('CaseResult', {
-      success: correct
-    });
+    handleResult(result.result);
+    setIsSubmitting(false);
   };
 
+  const handleResult = (result: DeductionResult) => {
+    switch (result) {
+      case 'failed':
+        // остаёмся на экране
+        return;
+
+      case 'partial':
+        // даём продолжить расследование
+        // UX-решение: просто остаёмся
+        return;
+
+      case 'success':
+        navigation.replace('CaseResult');
+        return;
+
+      default:
+        return;
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <CaseStatus />
+      <Text style={styles.title}>
+        Что, по-вашему, произошло?
+      </Text>
 
-      <StyledText style={styles.title}>
-        Deduction Board
-      </StyledText>
-      <StyledText style={styles.attempts}>
-        Attempts left: {deductionState.attemptsLeft}
-      </StyledText>
-
-      <FlatList
-        data={unlockedEvidence}
-        keyExtractor={e => e.id}
-        renderItem={({item}) => {
-
-          const active = selected.includes(item.id);
+      <View style={styles.options}>
+        {caseData.deductions.map(deduction => {
+          const selected = selectedId === deduction.id;
 
           return (
             <Pressable
+              key={deduction.id}
+              onPress={() => setSelectedId(deduction.id)}
               style={[
-                styles.card,
-                active && styles.active
+                styles.option,
+                selected && styles.optionSelected
               ]}
-              onPress={() => toggle(item.id)}
             >
-              <StyledText style={styles.text}>
-                {item.title}
-              </StyledText>
+              <Text
+                style={[
+                  styles.optionText,
+                  selected && styles.optionTextSelected
+                ]}
+              >
+                {deduction.text}
+              </Text>
             </Pressable>
           );
-        }}
-      />
+        })}
+      </View>
 
       <Pressable
-        style={styles.check}
-        onPress={onCheck}
+        onPress={handleSubmit}
+        disabled={!selectedId || isSubmitting}
+        style={[
+          styles.submit,
+          (!selectedId || isSubmitting) &&
+          styles.submitDisabled
+        ]}
       >
-        <StyledText style={styles.checkText}>
-          Check deduction
-        </StyledText>
+        <Text style={styles.submitText}>
+          Сделать вывод
+        </Text>
       </Pressable>
+
+      <Text style={styles.attempts}>
+        Осталось попыток: {deductionState.attemptsLeft}
+      </Text>
     </View>
   );
 }
@@ -125,49 +127,67 @@ export default function DeductionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#121212'
+    backgroundColor: '#0e0e0e',
+    padding: 24,
+    justifyContent: 'space-between'
   },
+
   title: {
-    color: 'white',
     fontSize: 20,
-    marginBottom: 16
+    color: '#fff',
+    marginBottom: 24,
+    fontWeight: '600'
   },
-  card: {
-    padding: 14,
-    marginVertical: 6,
+
+  options: {
+    flex: 1
+  },
+
+  option: {
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#151515',
+    marginBottom: 12
+  },
+
+  optionSelected: {
     backgroundColor: '#1f1f1f',
-    borderRadius: 8
+    borderWidth: 1,
+    borderColor: '#444'
   },
-  active: {
-    backgroundColor: '#3a3a3a'
+
+  optionText: {
+    color: '#ccc',
+    fontSize: 16,
+    lineHeight: 22
   },
-  text: {
-    color: 'white'
+
+  optionTextSelected: {
+    color: '#fff'
   },
-  check: {
-    backgroundColor: '#2a2a2a',
-    padding: 14,
-    marginTop: 16,
-    borderRadius: 8
-  },
-  checkText: {
-    color: 'white',
-    textAlign: 'center'
-  },
-  result: {
-    color: '#aaa',
-    textAlign: 'center',
-    marginTop: 12
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
+
+  submit: {
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: '#e5e5e5',
     alignItems: 'center',
-    backgroundColor: '#121212'
+    marginTop: 16
   },
+
+  submitDisabled: {
+    opacity: 0.4
+  },
+
+  submitText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '600'
+  },
+
   attempts: {
-    color: '#aaa',
-    marginBottom: 10
+    marginTop: 12,
+    textAlign: 'center',
+    color: '#777',
+    fontSize: 13
   }
 });

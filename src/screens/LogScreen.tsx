@@ -2,6 +2,7 @@ import {ScrollView, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useCaseStore} from '../store/caseStore';
 import {StyledText} from '../components/StyledText';
+import {useEffect} from 'react';
 
 function formatDate(timestamp: number) {
   const d = new Date(timestamp);
@@ -14,8 +15,13 @@ function formatDate(timestamp: number) {
   });
 }
 
-export default function InvestigationLogScreen() {
+export default function LogScreen() {
   const log = useCaseStore(s => s.log);
+  const markAsRead = useCaseStore(s => s.markLogAsRead);
+
+  useEffect(() => {
+    markAsRead();
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe}>
