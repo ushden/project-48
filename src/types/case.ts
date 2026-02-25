@@ -149,12 +149,17 @@ export type CaseData = {
   };
   unlockConditions: CaseUnlockCondition[];
   introDialogue: DialogueBlock;
-  crimeScene: CrimeScene;
+  crimeScene: CrimeScene[];
   witnesses: Witness[];
   victimPhone: VictimPhone;
   deductions: Deduction[];
   endings: CaseEnding[];
   caseHub: CaseHubType;
+};
+
+export type CrimeScene = {
+  id: string;
+  points: ScenePoint[];
 };
 
 export type DeductionStatus = 'idle' | 'solved' | 'failed';
@@ -200,10 +205,4 @@ export type ScenePoint = {
   type: 'evidence' | 'log' | 'choice' | 'empty';
   payload?: any;
   conditions?: SceneCondition[];
-};
-
-export type CrimeScene = {
-  id: string;
-  image: string;
-  points: ScenePoint[];
 };

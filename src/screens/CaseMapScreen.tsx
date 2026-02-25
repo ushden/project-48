@@ -196,7 +196,7 @@ export default function CaseMapScreen() {
                 navigation.replace('Dialogue', {
                   portrait: caseMeta?.introDialogue,
                   dialogue: caseData.introDialogue,
-                  onFinishAction: 'navigate',
+                  onFinishAction: 'replace',
                   nextScreen: 'CaseHub'
                 });
               }

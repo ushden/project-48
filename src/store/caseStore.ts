@@ -35,6 +35,8 @@ type CaseState = {
   case: CaseData | null;
   activeCaseId: string | null;
 
+  systemMessage: string;
+
   unlockedEvidence: Set<string>;
   sceneProgress: Record<string, {discoveredPoints: string[]}>;
   caseHub: CaseHubType;
@@ -68,6 +70,7 @@ type CaseState = {
 
   loadGame: () => void;
   loadCase: (caseId: string) => CaseData | undefined;
+  setSystemMessage: (msg: string) => void;
   completeActiveCase: () => void
   unlockEvidence: (id: string) => void
   isUnlockedEvidence: (id: string) => boolean
@@ -152,6 +155,7 @@ const hydrateState = (data: CaseState): Partial<CaseState> => ({
 export const useCaseStore = create<CaseState>((set, get) => ({
   case: null,
   unlockedEvidence: new Set(),
+  systemMessage: '',
   deductionState: {
     attemptsLeft: 3,
     status: 'idle'
@@ -174,6 +178,10 @@ export const useCaseStore = create<CaseState>((set, get) => ({
 
   logFlags: {},
   witnessesFlags: {},
+
+  setSystemMessage: (msg: string) => set(() => ({
+    systemMessage: msg,
+  })),
 
   setWitnessFlag: (id: string, key, value: boolean) => set(state => ({
     witnessesFlags: {
@@ -386,7 +394,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       );
 
       return {
-        unlockedEvidence: new Set(state.unlockedEvidence).add(evidenceId)
+        unlockedEvidence: state.unlockedEvidence.add(evidenceId),
       };
     }),
 
@@ -459,14 +467,14 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     set(state => ({
       hasUnreadLogEntries: true,
       log: [
-        ...state.log,
         {
           id: crypto.randomUUID(),
           type,
           text,
           timestamp: Date.now(),
           importance: importance ?? 'normal'
-        }
+        },
+        ...state.log,
       ]
     })),
 

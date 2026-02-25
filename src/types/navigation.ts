@@ -15,7 +15,10 @@ export type RootStackParamList = {
     nextParams?: any;
   };
   CaseHub?: {};
-  CrimeScene: {};
+  CrimeScene: {
+    crimeSceneId: string;
+    caseId: string;
+  };
   Witnesses: {
     caseId: string;
   };

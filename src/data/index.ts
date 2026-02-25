@@ -1,4 +1,4 @@
-import missing_employee from './case_missing_employee.json';
+import missing_employee from './cases/case_missing_employee.json';
 import {CaseData, CaseMeta} from '../types/case';
 
 export const casesMeta: CaseMeta[] = [
@@ -24,7 +24,14 @@ export const casesMeta: CaseMeta[] = [
         },
       },
     ],
-    crimeScene: [],
+    crimeScene: [
+      {
+        id: 'office_scene',
+        portrait: {
+          source: require('../../assets/case_1/case_1_office_scene.jpg'),
+        },
+      },
+    ],
     introDialogue: {
       source: require('../../assets/case_1/case_1_hr_manager.jpg'),
     },

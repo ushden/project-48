@@ -9,7 +9,7 @@ type Props = {
 };
 
 export function ScenePoint({onPress, isDiscovered, top, left}: Props) {
-  const opacity = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
   const scale = useRef(new Animated.Value(0.9)).current;
   const pulse = useRef(new Animated.Value(1)).current;
 
@@ -46,13 +46,20 @@ export function ScenePoint({onPress, isDiscovered, top, left}: Props) {
   }
 
   return (
-    <Pressable onPress={handlePress}>
+    <Pressable
+      onPress={handlePress}
+      style={[
+        styles.pointContainer,
+        {
+          top,
+          left,
+        }
+      ]}
+    >
       <Animated.View
         style={[
           styles.point,
           {
-            top,
-            left,
             opacity: isDiscovered ? 0.35 : opacity,
             transform: [{scale: Animated.multiply(scale, pulse)}]
           }
@@ -63,10 +70,17 @@ export function ScenePoint({onPress, isDiscovered, top, left}: Props) {
 }
 
 const styles = StyleSheet.create({
-  point: {
+  pointContainer: {
+    position: 'absolute',
+    zIndex: 100,
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: 'rgba(255,255,255,0.75)'
+  },
+  point: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 9,
+    backgroundColor: 'rgba(255,255,255,0.75)',
   }
 });

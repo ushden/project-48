@@ -5,33 +5,26 @@ import {useEffect, useRef} from 'react';
 
 export function FloatingJournalButton() {
   const pulse = useRef(new Animated.Value(1)).current;
-  const scale = useRef(new Animated.Value(1)).current;
 
   const navigation = useNavigation<any>();
   const hasUnread = useCaseStore(s => s.hasUnreadLogEntries);
-
-  const hiddenScreens = ['Dialogue', 'Deduction', 'MindBoard'];
 
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, {
-          toValue: 1.5,
+          toValue: 1.3,
           duration: 1500,
-          useNativeDriver: true,
+          useNativeDriver: true
         }),
         Animated.timing(pulse, {
           toValue: 1,
           duration: 1500,
-          useNativeDriver: true,
-        }),
-      ]),
+          useNativeDriver: true
+        })
+      ])
     ).start();
   }, []);
-
-  if (hiddenScreens.includes(navigation.route?.name)) {
-    return null;
-  }
 
   return (
     <Pressable
@@ -62,6 +55,7 @@ export function FloatingJournalButton() {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
+    zIndex: 100,
     bottom: 24,
     right: 20,
     width: 48,

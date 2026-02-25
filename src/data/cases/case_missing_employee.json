@@ -2,7 +2,10 @@
   "id": "missing_employee",
   "title": "Зниклий колега",
   "description": "Сотрудник компании не вышел на связь после рабочего дня. Формально — пропажа. Неформально — слишком много несостыковок.",
-  "position": {"x": 0.1, "y": 0.4},
+  "position": {
+    "x": 0.1,
+    "y": 0.4
+  },
   "difficulty": 1,
   "unlockConditions": [],
   "timeLimit": 180,
@@ -45,57 +48,61 @@
       }
     ]
   },
-  "crimeScene": {
-    "id": "office_scene",
-    "image": "office_missing_employee.webp",
-    "points": [
-      {
-        "id": "desk",
-        "type": "evidence",
-        "x": 0.45,
-        "y": 0.62,
-        "payload": {
-          "evidenceId": "work_report_draft"
+  "crimeScene": [
+    {
+      "id": "office_scene",
+      "points": [
+        {
+          "id": "desk",
+          "type": "evidence",
+          "x": 0.8,
+          "y": 0.45,
+          "payload": {
+            "evidenceId": "work_report_draft"
+          }
+        },
+        {
+          "id": "computer",
+          "type": "log",
+          "x": 0.7,
+          "y": 0.35,
+          "payload": {
+            "text": "Рабочий компьютер выключен. Не похоже, что он уходил в спешке."
+          }
+        },
+        {
+          "id": "window",
+          "type": "choice",
+          "x": 0.18,
+          "y": 0.32,
+          "payload": {
+            "flag": "noticed_open_window"
+          }
+        },
+        {
+          "id": "chair",
+          "type": "empty",
+          "x": 0.28,
+          "y": 0.55
+        },
+        {
+          "id": "trash",
+          "type": "evidence",
+          "x": 0.76,
+          "y": 0.65,
+          "conditions": [
+            {
+              "type": "pointDiscovered",
+              "pointId": "desk"
+            }
+          ],
+          "payload": {
+            "evidenceId": "shredded_note"
+          }
         }
-      },
-      {
-        "id": "computer",
-        "type": "log",
-        "x": 0.52,
-        "y": 0.48,
-        "payload": {
-          "text": "Рабочий компьютер выключен. Не похоже, что он уходил в спешке."
-        }
-      },
-      {
-        "id": "window",
-        "type": "choice",
-        "x": 0.78,
-        "y": 0.32,
-        "payload": {
-          "flag": "noticed_open_window"
-        }
-      },
-      {
-        "id": "chair",
-        "type": "empty",
-        "x": 0.38,
-        "y": 0.7
-      },
-      {
-        "id": "trash",
-        "type": "evidence",
-        "x": 0.6,
-        "y": 0.75,
-        "conditions": [
-          { "type": "pointDiscovered", "pointId": "desk" }
-        ],
-        "payload": {
-          "evidenceId": "shredded_note"
-        }
-      }
-    ]
-  },
+      ]
+    }
+  ],
   "witnesses": [
     {
       "id": "colleague",
@@ -167,7 +174,9 @@
     {
       "id": "crime_version",
       "text": "Он стал жертвой преступления.",
-      "requiredEvidence": ["shredded_note"],
+      "requiredEvidence": [
+        "shredded_note"
+      ],
       "result": "fail",
       "log": {
         "type": "deduction",
@@ -178,7 +187,9 @@
     {
       "id": "pressure_escape",
       "text": "Он сбежал из-за давления на работе.",
-      "requiredEvidence": ["work_report_draft"],
+      "requiredEvidence": [
+        "work_report_draft"
+      ],
       "result": "partial"
     },
     {

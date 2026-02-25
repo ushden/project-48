@@ -48,7 +48,7 @@ export default function CaseHubScreen() {
           style={styles.crimeScene}
           onPress={() => {
             updateCaseHubObjectStatus('crimeScene', 'visited');
-            navigation.navigate('CrimeScene');
+            navigation.navigate('CrimeScene', {caseId: activeCaseId, crimeSceneId: 'office_scene'});
           }}
           state={caseHub.crimeScene}
         />
@@ -88,7 +88,10 @@ export default function CaseHubScreen() {
         style={styles.mindBoardButton}
         onPress={() => navigation.navigate('MindBoard')}
       >
-        <StyledText style={styles.icon}>🧠</StyledText>
+        <Image
+          resizeMode="cover"
+          source={require('../../assets/brainstrom.png')}
+        />
       </Pressable>
     </SafeAreaView>
   );
@@ -111,7 +114,7 @@ function CaseHubObject(data: CaseHubObjectProps) {
       style={[
         styles.objectWrapper,
         state === 'visited' && styles.visited,
-        style,
+        style
       ]}
     >
       <StyledText style={styles.objectTitle}>{title}</StyledText>
@@ -133,7 +136,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   mindBoardButton: {
     position: 'absolute',
@@ -141,14 +144,6 @@ const styles = StyleSheet.create({
     left: 20,
     width: 48,
     height: 48,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  icon: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: 'rgba(20, 22, 30, 0.9)',
     justifyContent: 'center',
     alignItems: 'center'
   },

@@ -2,10 +2,11 @@ import {FunctionComponent, useEffect} from 'react';
 import {useFonts} from 'expo-font';
 import {StatusBar} from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import {NavigationContainer, DefaultTheme} from '@react-navigation/native';
-import {createStackNavigator} from '@react-navigation/stack'
+import {DefaultTheme, NavigationContainer} from '@react-navigation/native';
+import {createStackNavigator} from '@react-navigation/stack';
 
 import {useCaseStore} from './src/store/caseStore';
+import {SystemMessage} from './src/components/SystemMessage';
 import CaseHubScreen from './src/screens/CaseHubScreen';
 import DialogueScreen from './src/screens/DialogueScreen';
 import DeductionScreen from './src/screens/DeductionScreen';
@@ -27,8 +28,8 @@ const theme = {
     text: '#e0e0e0',
     border: '#121212',
     primary: '#c9b27c',
-    notification: '#c9b27c',
-  },
+    notification: '#c9b27c'
+  }
 };
 
 export default function App() {
@@ -71,7 +72,7 @@ export default function App() {
           animation: 'fade',
           presentation: 'card',
           headerShown: false,
-          freezeOnBlur: true,
+          freezeOnBlur: true
         }}
       >
         <Stack.Screen
@@ -108,7 +109,7 @@ export default function App() {
         />
         <Stack.Screen
           name="CrimeScene"
-          component={CrimeSceneScreen}
+          component={CrimeSceneScreen as FunctionComponent}
         />
       </Stack.Navigator>
     </NavigationContainer>

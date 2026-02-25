@@ -1,48 +1,68 @@
 import {useEffect} from 'react';
 import {Dimensions, Image, Pressable, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {useNavigation} from '@react-navigation/native';
+import {RouteProp} from '@react-navigation/native';
 
 import {useCaseStore} from '../store/caseStore';
 import {StyledText} from '../components/StyledText';
 import {isScenePointAvailable} from '../engine/sceneConditions';
-import {ScenePoint} from '../components/ScenePoint';
+import {ScenePoint as ScenePointComp} from '../components/ScenePoint';
+import {RootStackParamList} from '../types/navigation';
+import {StackNavigationProp} from '@react-navigation/stack';
+import {casesData, casesMeta} from '../data';
+import {FloatingJournalButton} from '../components/FloatingJournalButton';
+import {ScenePoint} from '../types/case';
+import {SystemMessage} from '../components/SystemMessage';
 
 const {width, height} = Dimensions.get('window');
 
-export default function CrimeSceneScreen() {
-  const navigation = useNavigation();
+type GameScreenRouteProp = RouteProp<RootStackParamList, 'CrimeScene'>;
+type GameScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CrimeScene'>;
 
-  const currentCase = useCaseStore(s => s.case);
+interface Props {
+  route: GameScreenRouteProp;
+  navigation: GameScreenNavigationProp;
+}
+
+export default function CrimeSceneScreen({navigation, route}: Props) {
+  const {caseId, crimeSceneId} = route.params;
+
+  const caseMeta = casesMeta.find(c => c.id === caseId);
+  const sceneMeta = caseMeta?.crimeScene?.find(c => c.id === crimeSceneId);
+
+  const caseData = casesData[caseId];
+  const scene = caseData?.crimeScene?.find(c => c.id === crimeSceneId);
+
   const sceneProgress = useCaseStore(s => s.sceneProgress);
   const unlockedEvidence = useCaseStore(s => s.unlockedEvidence);
 
   const markScenePoint = useCaseStore(s => s.markScenePoint);
   const unlockEvidence = useCaseStore(s => s.unlockEvidence);
   const addLog = useCaseStore(s => s.addLog);
-
-  const scene = currentCase?.crimeScene;
+  const setLogFlag = useCaseStore(s => s.setLogFlag);
+  const hasLogFlag = useCaseStore(s => s.hasLogFlag);
+  const setSystemMessage = useCaseStore(s => s.setSystemMessage);
 
   useEffect(() => {
     if (!scene) return;
 
-    if (!sceneProgress[scene.id]) {
+    if (!hasLogFlag(scene.id)) {
       addLog(
         'system',
         'Я осматриваю место происшествия.',
         'story'
       );
+      setLogFlag(scene.id);
     }
   }, [scene]);
 
-  if (!scene) {
+  if (!scene || !sceneMeta) {
     return null;
   }
 
-  const discovered =
-    sceneProgress[scene.id]?.discoveredPoints ?? [];
+  const discovered = sceneProgress[scene.id]?.discoveredPoints ?? [];
 
-  function handlePointPress(point: any) {
+  function handlePointPress(point: ScenePoint) {
     if (discovered.includes(point.id) || !scene) return;
 
     markScenePoint(scene.id, point.id);
@@ -51,10 +71,7 @@ export default function CrimeSceneScreen() {
       case 'evidence': {
         unlockEvidence(point.payload.evidenceId);
 
-        addLog(
-          'system',
-          'Этот объект может иметь значение.'
-        );
+        setSystemMessage('Этот объект может иметь значение. Нужно проверить свои записи');
         break;
       }
       case 'log': {
@@ -62,6 +79,7 @@ export default function CrimeSceneScreen() {
           'system',
           point.payload.text
         );
+        setSystemMessage(point.payload.text);
         break;
       }
       case 'choice': {
@@ -70,14 +88,11 @@ export default function CrimeSceneScreen() {
           'Я обратил внимание на одну деталь.',
           'hint'
         );
+        setSystemMessage('Я обратил внимание на одну деталь.');
         break;
       }
-
       case 'empty': {
-        addLog(
-          'system',
-          'Здесь нет ничего важного.'
-        );
+        setSystemMessage('Здесь нет ничего важного.');
         break;
       }
     }
@@ -85,9 +100,10 @@ export default function CrimeSceneScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <SystemMessage />
       <View style={styles.container}>
         <Image
-          source={{uri: scene.image}}
+          source={sceneMeta.portrait.source}
           style={styles.image}
         />
 
@@ -104,7 +120,7 @@ export default function CrimeSceneScreen() {
           if (!isAvailable) return null;
 
           return (
-            <ScenePoint
+            <ScenePointComp
               left={left}
               top={top}
               key={point.id}
@@ -121,6 +137,8 @@ export default function CrimeSceneScreen() {
           <StyledText>← Назад</StyledText>
         </Pressable>
       </View>
+
+      <FloatingJournalButton />
     </SafeAreaView>
   );
 }
@@ -134,16 +152,10 @@ const styles = StyleSheet.create({
     flex: 1
   },
   image: {
+    position: 'absolute',
     width,
     height,
     resizeMode: 'cover'
-  },
-  point: {
-    position: 'absolute',
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: 'rgba(255,255,255,0.75)'
   },
   back: {
     position: 'absolute',
