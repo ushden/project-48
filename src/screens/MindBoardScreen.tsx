@@ -73,7 +73,13 @@ export default function MindBoardScreen({navigation}: Props) {
           <Pressable
             style={styles.headerButton}
             onPress={() => {
-              setSystemMessage('Доска расследования\n\nПерелистывай версии сверху\nПрикалывай к ним факты\nВерсия должна объяснять всё\nИначе это всего лишь догадка');
+              setSystemMessage('Дошка розслідування\n' +
+                '\n' +
+                'Перегортай версії зверху\n' +
+                'Приколюй до них факти\n' +
+                'Версія має пояснювати все\n' +
+                'Інакше це лише здогад'
+              );
             }}
           >
             <Image
