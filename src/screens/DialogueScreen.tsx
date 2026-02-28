@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {Image, Pressable, StyleSheet, Text, View} from 'react-native';
+import {Image, Pressable, StyleSheet, View} from 'react-native';
 import {useCaseStore} from '../store/caseStore';
 import {RouteProp} from '@react-navigation/native';
 import {RootStackParamList} from '../types/navigation';
@@ -75,12 +75,12 @@ export default function DialogueScreen({route, navigation}: Props) {
       )}
 
       <View style={styles.bubble}>
-        <Text style={styles.speaker}>
+        <StyledText style={styles.speaker}>
           {dialogue.speaker}
-        </Text>
-        <Text style={styles.text}>
+        </StyledText>
+        <StyledText style={styles.text}>
           {line.text}
-        </Text>
+        </StyledText>
       </View>
     </Pressable>
   );

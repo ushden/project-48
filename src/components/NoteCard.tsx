@@ -1,5 +1,6 @@
 import React from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import {StyleSheet, View} from 'react-native';
+import {StyledText} from './StyledText';
 
 type Props = {
   title: string;
@@ -22,14 +23,14 @@ export function NoteCard(props: Props) {
         <View style={styles.pin} />
       </View>
 
-      <Text
+      <StyledText
         style={[
           styles.text,
           isLarge && styles.largeText
         ]}
       >
         {title}
-      </Text>
+      </StyledText>
     </View>
   );
 }

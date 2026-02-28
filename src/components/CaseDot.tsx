@@ -44,7 +44,7 @@ export const CaseDot = (props: CaseDotProps) => {
         if (state === 'locked' && !hasLogFlag(`locked_${caseData.id}`)) {
           addLog(
             'system',
-            'Это дело пока мне не по силам. Нужно разобраться с другими вопросами.',
+            'Ця справа поки що мені не під силу. Потрібно розібратись з іншими питаннями.',
             'hint'
           );
           setLogFlag(`locked_${caseData.id}`);

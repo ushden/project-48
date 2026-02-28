@@ -22,6 +22,7 @@ export type RootStackParamList = {
   Witnesses: {
     caseId: string;
   };
+  MindBoard: {};
   PhoneHome: {};
   PhoneMessages: {};
   PhoneChat: {

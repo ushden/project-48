@@ -9,6 +9,7 @@ import {StyledText} from '../components/StyledText';
 import {CaseData, CaseStatus} from '../types/case';
 import {CaseDot} from '../components/CaseDot';
 import {StatusBar} from 'expo-status-bar';
+import Settings from '../components/Settings';
 
 function GameTitle() {
   return (
@@ -30,11 +31,7 @@ export default function CaseMapScreen() {
   const hasLogFlag = useCaseStore(s => s.hasLogFlag);
   const setLogFlag = useCaseStore(s => s.setLogFlag);
 
-  // delete after test
-  const resetGame = useCaseStore(s => s.resetGame);
-
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(casesMeta[0].id);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const selectedCase = casesData[selectedCaseId || ''];
 
@@ -42,7 +39,7 @@ export default function CaseMapScreen() {
     if (!hasLogFlag('map_intro')) {
       addLog(
         'evidence',
-        'Город выглядит спокойным. Но я знаю - тишина здесь обманчива.',
+        'Місто виглядає спокійним. Але я знаю – тиша тут оманлива.',
         'story'
       );
       setLogFlag('map_intro');
@@ -91,19 +88,8 @@ export default function CaseMapScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar hidden />
-      <Pressable
-        style={styles.settingsButton}
-        onPress={() => setSettingsOpen(true)}
-      >
-        <Image source={require('../../assets/settings.png')} style={{width: 40, height: 40}} />
-      </Pressable>
 
-      <Pressable
-        style={styles.resetButton}
-        onPress={resetGame}
-      >
-        <StyledText>RESTTTTTTTTTT</StyledText>
-      </Pressable>
+      <Settings/>
 
       <GameTitle />
 
@@ -172,7 +158,7 @@ export default function CaseMapScreen() {
                 if (!hasLogFlag(`locked_attempt_${selectedCase.id}`)) {
                   addLog(
                     'system',
-                    'Я тороплюсь. Без нужного опыта это расследование только запутает меня.',
+                    'Я поспішаю. Без потрібного досвіду це розслідування лише заплутає мене.',
                     'hint'
                   );
                   setLogFlag(`locked_attempt_${selectedCase.id}`);
@@ -251,24 +237,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#d8d8d8',
     opacity: 0.9
-  },
-  resetButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    borderWidth: 1,
-    borderColor: 'red',
-    zIndex: 99,
-    width: 48,
-    height: 48
-  },
-  settingsButton: {
-    position: 'absolute',
-    top: 20,
-    right: 0,
-    zIndex: 99,
-    width: 48,
-    height: 48
   },
   map: {
     flex: 1

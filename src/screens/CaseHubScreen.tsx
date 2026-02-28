@@ -23,7 +23,7 @@ export default function CaseHubScreen() {
       <Pressable
         style={styles.headerButton}
         onPress={() => {
-          navigation.navigate('Main');
+          navigation.navigate('CaseMap');
         }}
       >
         <Image
@@ -40,14 +40,57 @@ export default function CaseHubScreen() {
         resizeMode="cover"
       />
 
+      {/* Board */}
+      {caseHub.board === 'visited' ? (
+        <CaseHubObject
+          image={require('../../assets/casehub/board_full.png')}
+          title="Доска улик"
+          style={styles.board}
+          onPress={() => {
+            navigation.navigate('MindBoard');
+          }}
+          state={caseHub.board}
+        />
+      ) : (
+        <CaseHubObject
+          image={require('../../assets/casehub/board_empty.png')}
+          title="Доска улик"
+          style={styles.board}
+          onPress={() => {
+            navigation.navigate('MindBoard');
+          }}
+          state={caseHub.board}
+        />
+      )}
+
+      {/* Case */}
+      <CaseHubObject
+        image={require('../../assets/casehub/case_file.png')}
+        title="Закрить дело"
+        style={styles.case}
+        // imgStyle={{transform: [{rotateX: '40deg'}]}}
+        onPress={() => {
+          if (caseHub.case !== 'visited') {
+            updateCaseHubObjectStatus('case', 'visited');
+          }
+
+          navigation.navigate('DeductionDialogue');
+        }}
+        state={caseHub.case}
+      />
+
       {/* Crime Scene */}
       {caseHub.crimeScene !== 'locked' && (
         <CaseHubObject
           image={require('../../assets/casehub/crime_scene.png')}
           title="Місце злочину"
           style={styles.crimeScene}
+          imgStyle={{transform: [{rotateX: '40deg'}]}}
           onPress={() => {
-            updateCaseHubObjectStatus('crimeScene', 'visited');
+            if (caseHub.crimeScene !== 'visited') {
+              updateCaseHubObjectStatus('crimeScene', 'visited');
+            }
+
             navigation.navigate('CrimeScene', {caseId: activeCaseId, crimeSceneId: 'office_scene'});
           }}
           state={caseHub.crimeScene}
@@ -61,7 +104,10 @@ export default function CaseHubScreen() {
           title="Свідки"
           style={styles.witnesses}
           onPress={() => {
-            updateCaseHubObjectStatus('witnesses', 'visited');
+            if (caseHub.witnesses !== 'visited') {
+              updateCaseHubObjectStatus('witnesses', 'visited');
+            }
+
             navigation.navigate('Witnesses', {caseId: activeCaseId});
           }}
           state={caseHub.witnesses}
@@ -75,7 +121,10 @@ export default function CaseHubScreen() {
           title="Телефон жертви"
           style={styles.phone}
           onPress={() => {
-            updateCaseHubObjectStatus('victimPhone', 'visited');
+            if (caseHub.victimPhone !== 'visited') {
+              updateCaseHubObjectStatus('victimPhone', 'visited');
+            }
+
             navigation.navigate('PhoneHome');
           }}
           state={caseHub.victimPhone}
@@ -84,15 +133,6 @@ export default function CaseHubScreen() {
 
       {/* Floating UI */}
       <FloatingJournalButton />
-      <Pressable
-        style={styles.mindBoardButton}
-        onPress={() => navigation.navigate('MindBoard')}
-      >
-        <Image
-          resizeMode="cover"
-          source={require('../../assets/brainstrom.png')}
-        />
-      </Pressable>
     </SafeAreaView>
   );
 }
@@ -103,10 +143,11 @@ type CaseHubObjectProps = {
   state: CaseHubProgressStatus;
   onPress: () => void;
   style: any;
+  imgStyle?: any;
 };
 
 function CaseHubObject(data: CaseHubObjectProps) {
-  const {image, title, onPress, style, state} = data;
+  const {image, title, onPress, style, imgStyle, state} = data;
 
   return (
     <Pressable
@@ -118,7 +159,7 @@ function CaseHubObject(data: CaseHubObjectProps) {
       ]}
     >
       <StyledText style={styles.objectTitle}>{title}</StyledText>
-      <Image source={image} style={styles.objectImage} />
+      <Image source={image} style={[styles.objectImage, imgStyle]} resizeMode="cover" />
     </Pressable>
   );
 }
@@ -133,15 +174,6 @@ const styles = StyleSheet.create({
     zIndex: 100,
     top: 24,
     right: 10,
-    width: 48,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  mindBoardButton: {
-    position: 'absolute',
-    bottom: 24,
-    left: 20,
     width: 48,
     height: 48,
     justifyContent: 'center',
@@ -162,33 +194,49 @@ const styles = StyleSheet.create({
     resizeMode: 'cover'
   },
   objectTitle: {
-    marginTop: 6,
-    fontSize: 16,
+    textAlign: 'center',
+    fontSize: 13,
     color: '#cfcfcf',
-    opacity: 0.8
+    opacity: 0.6
   },
   /* Positions */
-  crimeScene: {
+  board: {
     position: 'absolute',
     zIndex: 999,
     top: height * 0.15,
+    left: width * 0.1,
+    width: 300,
+    height: 300
+  },
+  case: {
+    position: 'absolute',
+    zIndex: 999,
+    top: height * 0.8,
     left: width * 0.28,
-    width: 180,
-    height: 180
+    width: 150,
+    height: 150
+  },
+  crimeScene: {
+    position: 'absolute',
+    zIndex: 999,
+    top: height * 0.55,
+    left: width * 0.4,
+    width: 120,
+    height: 120
   },
   witnesses: {
-    top: height * 0.4,
-    left: width * -0.05,
-    width: 180,
-    height: 180
+    top: height * 0.64,
+    left: width * 0.01,
+    width: 120,
+    height: 120
   },
   phone: {
-    top: height * 0.45,
-    right: width * -0.05,
-    width: 180,
-    height: 180
+    top: height * 0.73,
+    right: width * 0.01,
+    width: 100,
+    height: 100
   },
   visited: {
-    opacity: 0.6
+    opacity: 0.8
   }
 });

@@ -1,8 +1,7 @@
 import React, {useEffect} from 'react';
-import {FlatList, Image, Pressable, StyleSheet, Text, View} from 'react-native';
+import {FlatList, Image, Pressable, StyleSheet, View} from 'react-native';
 import Animated, {useAnimatedStyle, useSharedValue, withDelay, withTiming} from 'react-native-reanimated';
 import {useCaseStore} from '../store/caseStore';
-import {FloatingJournalButton} from '../components/FloatingJournalButton';
 import PhoneFrame from '../components/PhoneFrame';
 import {Ionicons} from '@expo/vector-icons';
 import {StyledText} from '../components/StyledText';
@@ -39,13 +38,13 @@ function AnimatedNoteCard({text, date, index}: {text: string; date: string; inde
   return (
     <Animated.View style={[styles.noteCard, animatedStyle]}>
       {date && (
-        <Text style={styles.noteDate}>
+        <StyledText style={styles.noteDate}>
           {date}
-        </Text>
+        </StyledText>
       )}
-      <Text style={styles.noteText}>
+      <StyledText style={styles.noteText}>
         {text}
-      </Text>
+      </StyledText>
     </Animated.View>
   );
 }
@@ -83,7 +82,7 @@ export default function PhoneNotesScreen({navigation}: Props) {
             color="#e6e6e6"
           />
           <StyledText style={styles.header}>
-            Заметки
+            Нотатки
           </StyledText>
         </Pressable>
 

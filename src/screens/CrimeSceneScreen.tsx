@@ -49,7 +49,7 @@ export default function CrimeSceneScreen({navigation, route}: Props) {
     if (!hasLogFlag(scene.id)) {
       addLog(
         'system',
-        'Я осматриваю место происшествия.',
+        'Я оглядаю місце події.',
         'story'
       );
       setLogFlag(scene.id);
@@ -71,7 +71,7 @@ export default function CrimeSceneScreen({navigation, route}: Props) {
       case 'evidence': {
         unlockEvidence(point.payload.evidenceId);
 
-        setSystemMessage('Этот объект может иметь значение. Нужно проверить свои записи');
+        setSystemMessage('Цей об\'єкт може мати значення. Потрібно перевірити свої записи');
         break;
       }
       case 'log': {
@@ -85,14 +85,14 @@ export default function CrimeSceneScreen({navigation, route}: Props) {
       case 'choice': {
         addLog(
           'system',
-          'Я обратил внимание на одну деталь.',
+          'Я звернув увагу на одну деталь.',
           'hint'
         );
-        setSystemMessage('Я обратил внимание на одну деталь.');
+        setSystemMessage('Я звернув увагу на одну деталь.');
         break;
       }
       case 'empty': {
-        setSystemMessage('Здесь нет ничего важного.');
+        setSystemMessage('Тут немає нічого важливого.');
         break;
       }
     }

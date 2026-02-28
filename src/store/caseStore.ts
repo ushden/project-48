@@ -5,18 +5,16 @@ import * as crypto from 'expo-crypto';
 import {
   BoardState,
   CaseData,
-  CaseEnding,
   CaseHubProgress,
   CaseHubProgressStatus,
   CaseHubType,
-  DeductionResult,
   LogEntry,
   LogImportance,
   LogType,
-  Rating,
   TutorialStep
 } from '../types/case';
 import {casesData, casesMeta} from '../data';
+import {CaseOutcome, resolveCaseOutcome} from './caseCore';
 
 const STORAGE_KEY = 'detective_game_save_v1';
 
@@ -33,6 +31,8 @@ type CaseState = {
   case: CaseData | null;
   activeCaseId: string | null;
 
+  lastOutcome: CaseOutcome | null;
+
   systemMessage: string;
 
   unlockedEvidence: Set<string>;
@@ -41,7 +41,6 @@ type CaseState = {
 
   deductionState: {
     attemptsLeft: number;
-    status: DeductionResult; // 'idle' | 'failed' | 'success'
   };
 
   log: LogEntry[];
@@ -71,10 +70,8 @@ type CaseState = {
   completeActiveCase: () => void
   unlockEvidence: (id: string) => void
   isUnlockedEvidence: (id: string) => boolean
-  submitDeduction: (deductionId: string) => {success: boolean, result: DeductionResult}
-  calculateRating: () => Rating
+  submitDeduction: (deductionId: string) => CaseOutcome
   addLog: (type: LogType, text: string, importance?: LogImportance) => void
-  getEnding: () => CaseEnding | null
   saveGame: () => Promise<void>;
   resetGame: () => Promise<void>;
   resetDeduction: () => void;
@@ -101,20 +98,6 @@ type CaseState = {
   isBoardValidFor: (id: string) => boolean;
 };
 
-const upgrade = (r: Rating): Rating => {
-  if (r === 'A') return 'S';
-  if (r === 'B') return 'A';
-  if (r === 'C') return 'B';
-  return r;
-};
-
-const downgrade = (r: Rating): Rating => {
-  if (r === 'S') return 'A';
-  if (r === 'A') return 'B';
-  if (r === 'B') return 'C';
-  return 'F';
-};
-
 const serializeState = (state: CaseState) => ({
   casesProgress: state.casesProgress,
   activeCaseId: state.activeCaseId,
@@ -139,11 +122,13 @@ const hydrateState = (data: CaseState): Partial<CaseState> => ({
   unlockedEvidence: new Set(data.unlockedEvidence ?? []),
   deductionState: data.deductionState ?? {
     attemptsLeft: 3,
-    status: 'idle'
   },
   log: data.log ?? [],
   board: data.board ?? {activeHypothesisId: null, hypotheses: {}},
-  tutorial: data.tutorial ?? {},
+  tutorial: data.tutorial ?? {
+    enabled: true,
+    step: 0
+  },
   logFlags: data.logFlags ?? {},
   sceneProgress: data.sceneProgress ?? {},
   caseHub: data.caseHub ?? {},
@@ -157,10 +142,10 @@ const hydrateState = (data: CaseState): Partial<CaseState> => ({
 export const useCaseStore = create<CaseState>((set, get) => ({
   case: null,
   unlockedEvidence: new Set(),
+  lastOutcome: null,
   systemMessage: '',
   deductionState: {
     attemptsLeft: 3,
-    status: 'idle'
   },
   log: [],
   casesProgress: {},
@@ -205,18 +190,22 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       }
     })),
 
-  markScenePoint: (sceneId, pointId) =>
-    set(state => ({
+  markScenePoint: (sceneId, pointId) => set(state => {
+    const existing =
+      state.sceneProgress[sceneId]?.discoveredPoints ?? [];
+
+    if (existing.includes(pointId))
+      return state;
+
+    return {
       sceneProgress: {
         ...state.sceneProgress,
         [sceneId]: {
-          discoveredPoints: [
-            ...(state.sceneProgress[sceneId]?.discoveredPoints ?? []),
-            pointId
-          ]
+          discoveredPoints: [...existing, pointId]
         }
       }
-    })),
+    };
+  }),
 
   hasLogFlag: (key) => Boolean(get().logFlags[key]),
   setLogFlag: (key) =>
@@ -272,15 +261,17 @@ export const useCaseStore = create<CaseState>((set, get) => ({
         set({
           timeLeft: 0,
           timerStatus: 'stopped',
-          deductionState: {
-            ...state.deductionState,
-            status: 'failed'
+          lastOutcome: {
+            resultType: 'failed',
+            ratingScore: 0,
+            ratingGrade: 'F',
+            linkScore: 0
           }
         });
 
         state.addLog(
           'system',
-          'Time has run out. The investigation was forced to conclude.'
+          'Час вичерпано. Слідство було змушене завершити.'
         );
 
         return;
@@ -339,8 +330,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       sceneProgress: {},
 
       deductionState: {
-        attemptsLeft: 3,
-        status: 'idle'
+        attemptsLeft: caseData.attempts || 1,
       },
 
       board: {
@@ -358,19 +348,19 @@ export const useCaseStore = create<CaseState>((set, get) => ({
   },
   completeActiveCase: () => {
     set(state => {
-      if (!state.activeCaseId) return state;
+      if (!state.activeCaseId || !state.lastOutcome)
+        return state;
 
       const caseId = state.activeCaseId;
 
       return {
         activeCaseId: null,
-
         casesProgress: {
           ...state.casesProgress,
           [caseId]: {
             completed: true,
-            rating: state.calculateRating(),
-            endingId: state.getEnding()?.id,
+            rating: state.lastOutcome.ratingGrade,
+            endingId: state.lastOutcome.endingId,
             completedAt: Date.now()
           }
         }
@@ -378,89 +368,67 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     });
   },
 
-  unlockEvidence: (evidenceId: string) =>
-    set(state => {
-      if (state.unlockedEvidence.has(evidenceId)) return state;
+  unlockEvidence: (evidenceId: string) => set(state => {
+    if (state.unlockedEvidence.has(evidenceId))
+      return state;
 
-      const evidence = get().case?.evidence[evidenceId];
-      if (!evidence) return state;
+    const evidence = state.case?.evidence[evidenceId];
+    if (!evidence) return state;
 
-      state.addLog(
-        'evidence',
-        `${evidence.title}: ${evidence.description}`,
-        'normal'
-      );
+    const newSet = new Set(state.unlockedEvidence);
+    newSet.add(evidenceId);
 
-      return {
-        unlockedEvidence: state.unlockedEvidence.add(evidenceId)
-      };
-    }),
+    state.addLog(
+      'evidence',
+      `${evidence.title}: ${evidence.description}`,
+      'normal'
+    );
+
+    return {
+      unlockedEvidence: newSet
+    };
+  }),
 
   isUnlockedEvidence: (id) => {
     return get().unlockedEvidence.has(id);
   },
 
-  submitDeduction: (deductionId: string) => {
-    const currentCase = get().case;
-    if (!currentCase) return {success: false, result: 'failed'};
+  submitDeduction: (deductionId): CaseOutcome => {
+    const state = get();
+    if (!state.case) return {resultType: 'failed'} as CaseOutcome;
 
-    const ded = currentCase.deductions.find(d => d.id === deductionId);
-    if (!ded) return {success: false, result: 'failed'};
+    const outcome = resolveCaseOutcome(
+      state.case,
+      {
+        unlockedEvidence: state.unlockedEvidence,
+        sceneProgress: state.sceneProgress,
+        board: state.board,
+        attemptsLeft: state.deductionState.attemptsLeft
+      },
+      deductionId
+    );
 
-    // проверка улик
-    const hasEvidence = ded.requiredEvidence?.every(e =>
-      get().unlockedEvidence.has(e)
-    ) ?? true;
+    const attemptsLeft =
+      outcome.resultType === 'failed'
+        ? Math.max(0, state.deductionState.attemptsLeft - 1)
+        : state.deductionState.attemptsLeft;
 
-    // проверка scenePoints
-    const hasPoints = ded.requiredScenePoints?.every(p =>
-      Object.values(get().sceneProgress).some(sp =>
-        sp.discoveredPoints.includes(p)
-      )
-    ) ?? true;
+    set({
+      lastOutcome: outcome,
+      deductionState: {
+        attemptsLeft,
+      }
+    });
 
-    // финальный результат
-    const success = hasEvidence && hasPoints;
-
-    return {success, result: ded.result};
+    return outcome;
   },
 
   resetDeduction: () =>
     set({
       deductionState: {
         attemptsLeft: 3,
-        status: 'idle'
       }
     }),
-
-  calculateRating: (): Rating => {
-    const {deductionState} = get();
-
-    if (deductionState.status === 'failed')
-      return 'F';
-
-    const attemptsUsed = 3 - deductionState.attemptsLeft;
-    // const linkScore = get().calculateLinkScore();
-    const linkScore = 0;
-
-    let base: Rating;
-
-    if (attemptsUsed === 0) base = 'S';
-    else if (attemptsUsed === 1) base = 'A';
-    else if (attemptsUsed === 2) base = 'B';
-    else base = 'C';
-
-    // коррекция рейтинга
-    if (linkScore >= 2 && base !== 'S') {
-      return upgrade(base);
-    }
-
-    if (linkScore <= -1) {
-      return downgrade(base);
-    }
-
-    return base;
-  },
 
   addLog: (type: LogType, text: string, importance?: LogImportance) =>
     set(state => ({
@@ -476,15 +444,6 @@ export const useCaseStore = create<CaseState>((set, get) => ({
         ...state.log
       ]
     })),
-
-  getEnding: () => {
-    const state = get();
-    const caseData = state.case;
-    if (!caseData) return null;
-
-    const deductionResult = state.deductionState.status;
-    return caseData.endings.find(e => e.condition === deductionResult) ?? null;
-  },
 
   // BOARD
   setActiveHypothesis: (id: string) => set(state => ({
@@ -519,18 +478,16 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     });
   },
   isBoardValidFor(id: string) {
-    const {case: caseData, board} = get();
+    const {board, case: caseData} = get();
 
     const deduction = caseData?.deductions.find(d => d.id === id);
     if (!deduction) return false;
 
-    const hypotheses = board.hypotheses[id] || [];
-    const requiredEvidence = deduction.requiredEvidence || [];
-    const requiredScenePoints = deduction.requiredScenePoints || [];
-    const hasEvidence = requiredEvidence.every(e => hypotheses?.includes(e));
-    const hasScenePoints = requiredScenePoints.every(p => hypotheses?.includes(p));
+    const hypothesisEvidence = board.hypotheses[id] || [];
 
-    return hasEvidence && hasScenePoints && hypotheses.length === requiredEvidence.length + requiredScenePoints.length;
+    return deduction.requiredEvidence?.every(e =>
+      hypothesisEvidence.includes(e)
+    ) ?? true;
   }
 }));
 

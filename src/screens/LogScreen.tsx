@@ -32,7 +32,7 @@ export default function LogScreen() {
         >
           {log.length === 0 && (
             <StyledText style={styles.empty}>
-              Записей пока нет.
+              Записів наразі немає.
             </StyledText>
           )}
 

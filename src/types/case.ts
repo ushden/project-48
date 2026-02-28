@@ -1,13 +1,5 @@
 import {ImageSourcePropType} from 'react-native';
 
-export type Evidence = {
-  id: string
-  title: string
-  type: string
-  content: string
-  unlocked: boolean
-}
-
 export type Rating = 'S' | 'A' | 'B' | 'C' | 'F';
 
 export type CaseStatus = 'locked' | 'available' | 'completed' | 'active';
@@ -18,21 +10,6 @@ export type CaseUnlockCondition =
   | {type: 'timeRemaining'; minMinutes: number}
   | {type: 'requiredLinks'; count: number}
   | {type: 'secretEndingUnlocked'; caseId: string};
-
-export type EndingConditions = {
-  minRating?: Rating
-  requiredLinksComplete?: boolean
-  noForbiddenLinks?: boolean
-  minTimeLeft?: number
-  noHintsUsed?: boolean
-}
-
-export type DeductionLinkRule = {
-  fromId: string;
-  toId: string;
-  type: BoardLinkType;
-  score?: number
-}
 
 export type DeductionResult = 'failed' | 'partial' | 'success' | 'idle';
 
@@ -119,6 +96,8 @@ export type CaseEnding = {
 export type CaseHubProgressStatus = 'locked' | 'available' | 'visited';
 
 export type CaseHubProgress = {
+  board: CaseHubProgressStatus;
+  case: CaseHubProgressStatus;
   crimeScene: CaseHubProgressStatus;
   witnesses: CaseHubProgressStatus;
   victimPhone: CaseHubProgressStatus;
@@ -160,6 +139,7 @@ export type CaseData = {
   title: string;
   description: string;
   difficulty: 1 | 2 | 3 | 4 | 5;
+  attempts: number;
   timeLimit: number;
   position: {
     x: number
@@ -174,14 +154,21 @@ export type CaseData = {
   deductions: Deduction[];
   endings: CaseEnding[];
   caseHub: CaseHubType;
+  deductionDialogue: {
+    characterName: string;
+    introText: string;
+  };
+  reactions: {
+    success: string;
+    partial: string;
+    failed: string;
+  };
 };
 
 export type CrimeScene = {
   id: string;
   points: ScenePoint[];
 };
-
-export type DeductionStatus = 'idle' | 'solved' | 'failed';
 
 export type LogType = 'evidence' | 'dialogue' | 'deduction' | 'system';
 export type LogImportance = 'normal' | 'hint' | 'story';
@@ -194,20 +181,9 @@ export type LogEntry = {
   importance?: LogImportance;
 };
 
-export type BoardLinkType =
-  | 'supports'
-  | 'contradicts'
-  | 'related'
-
 export type BoardState = {
   activeHypothesisId: string | null;
   hypotheses: Record<string, string[]>;
-}
-
-export type Hint = {
-  id: string
-  condition: 'onWrongDeduction' | 'onMissingLinks'
-  text: string
 }
 
 export type TutorialStep = 0 | 1 | 2 | 3 | 4 | 5;

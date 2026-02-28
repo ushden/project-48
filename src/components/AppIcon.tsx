@@ -1,6 +1,7 @@
-import {Pressable, StyleSheet, Text, View} from 'react-native';
+import {Pressable, StyleSheet, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import React from 'react';
+import {StyledText} from './StyledText';
 
 type Props = {
   icon: string;
@@ -30,9 +31,9 @@ export function AppIcon(props: Props) {
         {highlight && <View style={styles.dot} />}
       </View>
 
-      <Text style={styles.label}>
+      <StyledText style={styles.label}>
         {label}
-      </Text>
+      </StyledText>
     </Pressable>
   );
 }

@@ -8,7 +8,7 @@ import {createStackNavigator} from '@react-navigation/stack';
 import {useCaseStore} from './src/store/caseStore';
 import CaseHubScreen from './src/screens/CaseHubScreen';
 import DialogueScreen from './src/screens/DialogueScreen';
-import DeductionScreen from './src/screens/DeductionScreen';
+import DeductionDialogueScreen from './src/screens/DeductionDialogueScreen';
 import CaseResultScreen from './src/screens/CaseResultScreen';
 import LogScreen from './src/screens/LogScreen';
 import MindBoardScreen from './src/screens/MindBoardScreen';
@@ -79,7 +79,7 @@ export default function App() {
         }}
       >
         <Stack.Screen
-          name="Main"
+          name="CaseMap"
           component={CaseMapScreen}
         />
         <Stack.Screen
@@ -95,8 +95,8 @@ export default function App() {
           component={DialogueScreen as FunctionComponent}
         />
         <Stack.Screen
-          name="Deduction"
-          component={DeductionScreen}
+          name="DeductionDialogue"
+          component={DeductionDialogueScreen}
         />
         <Stack.Screen
           name="CaseResult"
@@ -124,7 +124,7 @@ export default function App() {
         />
         <Stack.Screen
           name="PhoneChat"
-          component={PhoneChatScreen}
+          component={PhoneChatScreen as any}
         />
         <Stack.Screen
           name="PhoneNotes"

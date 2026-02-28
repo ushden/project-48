@@ -1,145 +1,226 @@
-import {Pressable, StyleSheet, Text, View} from 'react-native';
+import React, {useEffect} from 'react';
+import {Pressable, StyleSheet, View} from 'react-native';
+import Animated, {useAnimatedStyle, useSharedValue, withTiming} from 'react-native-reanimated';
 import {useNavigation} from '@react-navigation/native';
 import {useCaseStore} from '../store/caseStore';
+import {StyledText} from '../components/StyledText';
+
+function buildSummary(
+  resultType: 'success' | 'partial' | 'failed'
+) {
+  if (resultType === 'success')
+    return 'Вы собрали факты и выстроили последовательную версию событий.';
+
+  if (resultType === 'partial')
+    return 'Версия выглядит убедительной, но некоторые детали требуют пересмотра.';
+
+  return 'Факты не подтверждают выбранную версию. Возможно, вы упустили важные детали.';
+}
 
 export default function CaseResultScreen() {
   const navigation = useNavigation<any>();
-
   const {
     case: caseData,
-    getEnding,
-    calculateRating,
-    deductionState,
-    calculateLinkScore,
+    lastOutcome,
     completeActiveCase
   } = useCaseStore();
 
-  if (!caseData) return null;
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(10);
 
-  const ending = getEnding();
-  const rating = calculateRating();
-  const linkScore = calculateLinkScore();
+  useEffect(() => {
+    opacity.value = withTiming(1, {duration: 500});
+    translateY.value = withTiming(0, {duration: 500});
+  }, []);
 
-  const summary = buildSummary({
-    attemptsLeft: deductionState.attemptsLeft,
-    linkScore
-  });
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{translateY: translateY.value}]
+  }));
 
-  const handleContinue = () => {
+  if (!caseData || !lastOutcome) return null;
+
+  const {resultType, ratingScore, ratingGrade, endingId} = lastOutcome;
+
+  const ending = caseData.endings.find(e => e.id === endingId);
+
+  const headerText =
+    resultType === 'success'
+      ? 'Дело закрыто'
+      : resultType === 'partial'
+        ? 'Версия требует уточнения'
+        : 'Вывод не подтверждён';
+
+  const summaryText = buildSummary(resultType);
+
+  const handleCloseCase = () => {
     completeActiveCase();
     navigation.replace('CaseMap');
   };
 
+  const handleContinue = () => {
+    navigation.replace('CaseHub');
+  };
+
+  const handleRestart = () => {
+    navigation.replace('CaseHub');
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.closed}>Дело закрыто</Text>
+    <Animated.View style={[styles.container, animatedStyle]}>
+      <StyledText style={styles.header}>
+        {headerText}
+      </StyledText>
 
-      <Text style={styles.title}>{caseData.title}</Text>
+      <StyledText style={styles.caseTitle}>
+        {caseData.title}
+      </StyledText>
 
-      <View style={styles.ratingWrapper}>
-        <Text style={styles.rating}>{rating}</Text>
-      </View>
+      {resultType !== 'failed' && (
+        <View style={styles.ratingBlock}>
+          <StyledText style={styles.ratingScore}>
+            {ratingScore}
+          </StyledText>
+          <StyledText style={styles.ratingLabel}>
+            Оцінка розслідування
+          </StyledText>
+          <StyledText style={styles.ratingGrade}>
+            Клас: {ratingGrade}
+          </StyledText>
+        </View>
+      )}
 
-      <Text style={styles.ending}>{ending?.text}</Text>
+      {ending?.text && (
+        <StyledText style={styles.endingText}>
+          {ending.text}
+        </StyledText>
+      )}
 
       <View style={styles.divider} />
 
-      <Text style={styles.summary}>{summary}</Text>
+      <StyledText style={styles.summary}>
+        {summaryText}
+      </StyledText>
 
-      <Pressable style={styles.button} onPress={handleContinue}>
-        <Text style={styles.buttonText}>
-          Вернуться к карте
-        </Text>
-      </Pressable>
-    </View>
+      {/* BUTTONS */}
+
+      {resultType === 'success' && (
+        <Pressable style={styles.primaryButton} onPress={handleCloseCase}>
+          <StyledText style={styles.primaryButtonText}>
+            Повернутись до карти справ
+          </StyledText>
+        </Pressable>
+      )}
+
+      {resultType === 'partial' && (
+        <>
+          <Pressable style={styles.primaryButton} onPress={handleContinue}>
+            <StyledText style={styles.primaryButtonText}>
+              Продовжити розслідування
+            </StyledText>
+          </Pressable>
+
+          <Pressable style={styles.secondaryButton} onPress={handleCloseCase}>
+            <StyledText style={styles.secondaryButtonText}>
+              Закрити справу
+            </StyledText>
+          </Pressable>
+        </>
+      )}
+
+      {resultType === 'failed' && (
+        <Pressable style={styles.primaryButton} onPress={handleRestart}>
+          <StyledText style={styles.primaryButtonText}>
+            Розпочати розслідування заново
+          </StyledText>
+        </Pressable>
+      )}
+    </Animated.View>
   );
-}
-
-function buildSummary(data: {
-  attemptsLeft: number;
-  linkScore: number;
-}) {
-  const {attemptsLeft, linkScore} = data;
-
-  if (attemptsLeft === 3)
-    return 'Вы не торопились с выводами и внимательно изучили детали.';
-
-  if (attemptsLeft === 2)
-    return 'Вы сомневались, но продолжили расследование.';
-
-  if (attemptsLeft <= 1)
-    return 'Вы действовали решительно, рискуя ошибиться.';
-
-  if (linkScore > 6)
-    return 'Ваши рассуждения были связными и последовательными.';
-
-  return 'Вы дошли до истины, но путь был непростым.';
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0e0e0e',
-    padding: 24,
-    justifyContent: 'space-between'
+    backgroundColor: '#111',
+    paddingTop: 100,
+    paddingHorizontal: 24
   },
 
-  closed: {
-    color: '#777',
-    fontSize: 13,
-    textTransform: 'uppercase',
-    letterSpacing: 1
+  header: {
+    fontSize: 18,
+    color: '#e0e0e0',
+    marginBottom: 8
   },
 
-  title: {
-    color: '#fff',
-    fontSize: 22,
-    fontWeight: '600',
-    marginTop: 8
+  caseTitle: {
+    fontSize: 14,
+    color: '#8a8a8a',
+    marginBottom: 30
   },
 
-  ratingWrapper: {
-    alignSelf: 'center',
-    marginVertical: 24
+  ratingBlock: {
+    marginBottom: 30
   },
 
-  rating: {
-    fontSize: 64,
-    fontWeight: '700',
-    color: '#e5e5e5'
+  ratingScore: {
+    fontSize: 48,
+    color: '#e0e0e0'
   },
 
-  ending: {
-    color: '#ddd',
-    fontSize: 17,
-    lineHeight: 24,
-    textAlign: 'center'
+  ratingLabel: {
+    fontSize: 12,
+    color: '#8a8a8a',
+    marginTop: 4
+  },
+
+  ratingGrade: {
+    fontSize: 14,
+    color: '#cfcfcf',
+    marginTop: 10
+  },
+
+  endingText: {
+    fontSize: 14,
+    color: '#d0d0d0',
+    lineHeight: 22,
+    marginBottom: 30
   },
 
   divider: {
     height: 1,
     backgroundColor: '#222',
-    marginVertical: 24
+    marginVertical: 20
   },
 
   summary: {
-    color: '#999',
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20
+    fontSize: 13,
+    color: '#8a8a8a',
+    lineHeight: 20,
+    marginBottom: 40
   },
 
-  button: {
-    marginTop: 24,
-    paddingVertical: 16,
-    borderRadius: 14,
-    backgroundColor: '#e5e5e5',
+  primaryButton: {
+    backgroundColor: '#1e1e1e',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 16
+  },
+
+  primaryButtonText: {
+    color: '#e0e0e0'
+  },
+
+  secondaryButton: {
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    padding: 14,
+    borderRadius: 12,
     alignItems: 'center'
   },
 
-  buttonText: {
-    color: '#000',
-    fontSize: 16,
-    fontWeight: '600'
+  secondaryButtonText: {
+    color: '#9a9a9a'
   }
 });

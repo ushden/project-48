@@ -26,7 +26,7 @@ export default function PhoneChatScreen({route, navigation}: Props) {
   useEffect(() => {
     const evidenceToUnlock = chat.messages.find(m => m.unlocksEvidence);
 
-    if (evidenceToUnlock) {
+    if (evidenceToUnlock?.unlocksEvidence) {
       unlockEvidence(evidenceToUnlock.unlocksEvidence);
     }
   }, []);
@@ -57,7 +57,7 @@ export default function PhoneChatScreen({route, navigation}: Props) {
 
         <FlatList
           data={chat.messages}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.text}
           renderItem={({item, index}) => (
             <MessageBubble message={item} index={index} />
           )}

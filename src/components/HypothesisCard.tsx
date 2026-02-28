@@ -84,11 +84,9 @@ export function HypothesisCard(props: Props) {
 const styles = StyleSheet.create({
   card: {
     width: ITEM_WIDTH,
-    // minHeight: 160,
     backgroundColor: '#f5e6c8',
     padding: 8,
     borderRadius: 8,
-    // marginBottom: 12,
     elevation: 4
-  },
+  }
 });

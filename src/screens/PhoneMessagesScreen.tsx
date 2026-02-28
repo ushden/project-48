@@ -1,5 +1,5 @@
 import React from 'react';
-import {FlatList, Image, Pressable, StyleSheet, Text, View} from 'react-native';
+import {FlatList, Image, Pressable, StyleSheet, View} from 'react-native';
 import {useCaseStore} from '../store/caseStore';
 import PhoneFrame from '../components/PhoneFrame';
 import {Messages} from '../types/case';
@@ -39,7 +39,7 @@ export default function PhoneMessagesScreen({navigation}: Props) {
             color="#e6e6e6"
           />
           <StyledText style={styles.header}>
-            Сообщения
+            Повідомлення
           </StyledText>
         </Pressable>
 
@@ -58,17 +58,17 @@ export default function PhoneMessagesScreen({navigation}: Props) {
             >
               <View style={styles.row}>
                 <View style={{flex: 1}}>
-                  <Text style={styles.contact}>
+                  <StyledText style={styles.contact}>
                     {item.name}
-                  </Text>
-                  <Text style={styles.preview}>
+                  </StyledText>
+                  <StyledText style={styles.preview}>
                     {item.messages[item.messages.length - 1].text}
-                  </Text>
+                  </StyledText>
                 </View>
 
-                <Text style={styles.time}>
+                <StyledText style={styles.time}>
                   {item.messages[item.messages.length - 1].time}
-                </Text>
+                </StyledText>
               </View>
             </Pressable>
           )}

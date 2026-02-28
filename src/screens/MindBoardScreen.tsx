@@ -24,9 +24,14 @@ export default function MindBoardScreen({navigation}: Props) {
     board,
     setActiveHypothesis,
     toggleEvidenceForActiveHypothesis,
+    updateCaseHubObjectStatus,
     isBoardValidFor,
     setSystemMessage
   } = useCaseStore();
+
+  useEffect(() => {
+    updateCaseHubObjectStatus('board', 'visited');
+  }, []);
 
   useEffect(() => {
     if (!board.activeHypothesisId) {
@@ -102,7 +107,7 @@ export default function MindBoardScreen({navigation}: Props) {
         <View style={styles.boardArea}>
           {activeHypothesis && (
             <StyledText style={styles.activeTitle}>
-              Гипотеза
+              Гіпотеза
             </StyledText>
           )}
 
@@ -140,8 +145,8 @@ export default function MindBoardScreen({navigation}: Props) {
           {board.activeHypothesisId && (
             <StyledText style={styles.status}>
               {isBoardValidFor(board.activeHypothesisId)
-                ? 'Версия выглядит цельной.'
-                : 'Есть детали, которые не объяснены.'}
+                ? 'Версія виглядає цілісною.'
+                : 'Є деталі, які не пояснені.'}
             </StyledText>
           )}
         </View>
