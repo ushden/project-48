@@ -78,8 +78,8 @@ export default function CaseMapScreen() {
 
   const state = getCaseMapState(selectedCase);
   const actionLabel =
-    state === 'active' ? 'Продолжить' :
-      state === 'available' ? 'Начать дело' :
+    state === 'active' ? 'Продовжити' :
+      state === 'available' ? 'Почати справу' :
         state === 'completed' ? 'Завершено' :
           'Недоступно';
 
