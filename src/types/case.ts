@@ -79,22 +79,34 @@ export type Witness = {
   isInterviewed?: boolean;
 };
 
+type Log = {
+  type: LogType;
+  importance?: LogImportance;
+};
+
+export type Messages = {
+  id: string;
+  name: string;
+  messages: Message[];
+}
+
+export type Message = {
+  from: string;
+  text: string;
+  time: string;
+  unlocksEvidence?: string;
+  log?: Log;
+};
+
+export type Note = {
+  text: string;
+  date: string;
+  log?: Log;
+}
+
 export type VictimPhone = {
-  messages?: {
-    from: string;
-    text: string;
-    log?: {
-      type: LogType;
-      importance?: LogImportance;
-    };
-  }[];
-  notes?: {
-    text: string;
-    log?: {
-      type: LogType;
-      importance?: LogImportance;
-    };
-  }[];
+  messages?: Messages[];
+  notes?: Note[];
 };
 
 export type CaseEnding = {
@@ -137,6 +149,12 @@ export type CaseMeta = {
   introDialogue: Portrait;
 }
 
+export type EvidenceData = {
+  id: string;
+  title: string;
+  description: string;
+};
+
 export type CaseData = {
   id: string;
   title: string;
@@ -147,6 +165,7 @@ export type CaseData = {
     x: number
     y: number
   };
+  evidence: Record<string, EvidenceData>;
   unlockConditions: CaseUnlockCondition[];
   introDialogue: DialogueBlock;
   crimeScene: CrimeScene[];
@@ -180,10 +199,9 @@ export type BoardLinkType =
   | 'contradicts'
   | 'related'
 
-export type BoardLink = {
-  fromId: string
-  toId: string
-  type: BoardLinkType
+export type BoardState = {
+  activeHypothesisId: string | null;
+  hypotheses: Record<string, string[]>;
 }
 
 export type Hint = {

@@ -1,5 +1,5 @@
 import {ImageSourcePropType} from 'react-native';
-import {DialogueBlock} from './case';
+import {DialogueBlock, Messages} from './case';
 
 export type RootStackParamList = {
   Dialogue: {
@@ -22,5 +22,10 @@ export type RootStackParamList = {
   Witnesses: {
     caseId: string;
   };
-  VictimPhone: {};
+  PhoneHome: {};
+  PhoneMessages: {};
+  PhoneChat: {
+    chat: Messages;
+  };
+  PhoneNotes: {};
 };

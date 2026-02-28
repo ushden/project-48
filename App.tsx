@@ -6,7 +6,6 @@ import {DefaultTheme, NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 
 import {useCaseStore} from './src/store/caseStore';
-import {SystemMessage} from './src/components/SystemMessage';
 import CaseHubScreen from './src/screens/CaseHubScreen';
 import DialogueScreen from './src/screens/DialogueScreen';
 import DeductionScreen from './src/screens/DeductionScreen';
@@ -16,6 +15,10 @@ import MindBoardScreen from './src/screens/MindBoardScreen';
 import CaseMapScreen from './src/screens/CaseMapScreen';
 import CrimeSceneScreen from './src/screens/CrimeSceneScreen';
 import WitnessesScreen from './src/screens/WitnessesScreen';
+import PhoneHomeScreen from './src/screens/PhoneHomeScreen';
+import PhoneMessagesScreen from './src/screens/PhoneMessagesScreen';
+import PhoneChatScreen from './src/screens/PhoneChatScreen';
+import PhoneNotesScreen from './src/screens/PhoneNotesScreen';
 
 const Stack = createStackNavigator();
 
@@ -110,6 +113,22 @@ export default function App() {
         <Stack.Screen
           name="CrimeScene"
           component={CrimeSceneScreen as FunctionComponent}
+        />
+        <Stack.Screen
+          name="PhoneHome"
+          component={PhoneHomeScreen}
+        />
+        <Stack.Screen
+          name="PhoneMessages"
+          component={PhoneMessagesScreen}
+        />
+        <Stack.Screen
+          name="PhoneChat"
+          component={PhoneChatScreen}
+        />
+        <Stack.Screen
+          name="PhoneNotes"
+          component={PhoneNotesScreen}
         />
       </Stack.Navigator>
     </NavigationContainer>

@@ -13,13 +13,13 @@ export const SystemMessage = () => {
     if (systemMessage) {
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 150,
+        duration: 200,
         useNativeDriver: true
       }).start();
 
       setTimeout(() => {
         setSystemMessage('');
-      }, 4000);
+      }, 5000);
     }
   }, [systemMessage]);
 
@@ -39,20 +39,20 @@ const styles = StyleSheet.create({
   messageContainer: {
     position: 'absolute',
     zIndex: 1000,
-    top: 50,
+    top: 70,
     left: 10,
     right: 10,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#ccc',
-    backgroundColor: 'rgba(250,250,250,0.35)'
+    borderColor: '#c9b88f',
+    backgroundColor: '#e6d8b8'
   },
   textContent: {
     textAlign: 'center',
     fontSize: 16,
-    color: '#ccc',
+    color: '#000',
     padding: 12
   }
 });

@@ -1,7 +1,7 @@
 {
   "id": "missing_employee",
-  "title": "Зниклий колега",
-  "description": "Сотрудник компании не вышел на связь после рабочего дня. Формально — пропажа. Неформально — слишком много несостыковок.",
+  "title": "Пропавший сотрудник",
+  "description": "Сотрудник компании перестал выходить на связь. Признаков насилия нет, но некоторые детали вызывают вопросы",
   "position": {
     "x": 0.1,
     "y": 0.4
@@ -9,6 +9,28 @@
   "difficulty": 1,
   "unlockConditions": [],
   "timeLimit": 180,
+  "evidence": {
+    "work_report_draft": {
+      "id": "work_report_draft",
+      "title": "Черновик отчёта",
+      "description": "Отчёт не закончен. Последние строки выглядят поспешными, будто его прервали на середине мысли. Тема сложная, но почерк уверенный - он явно знал, о чём писал. Интересно, что именно не успел дописать и почему."
+    },
+    "shredded_note": {
+      "id": "shredded_note",
+      "title": "Измельчённая записка",
+      "description": "Записка была разорвана вручную и выброшена в корзину. Слишком аккуратно для случайности. Значит, он не хотел, чтобы это прочли. Иногда то, что человек пытается скрыть, говорит больше, чем любые слова."
+    },
+    "exit_plan_message": {
+      "id": "exit_plan_message",
+      "title": "Сообщение в телефоне",
+      "description": "Сообщение короткое, без деталей. Похоже на подтверждение заранее оговорённого плана."
+    },
+    "open_window": {
+      "id": "open_window",
+      "title": "Открытое окно",
+      "description": "Окно приоткрыто. С улицы идёт прохладный воздух. Следов взлома нет."
+    }
+  },
   "caseHub": {
     "crimeScene": "available",
     "witnesses": "available",
@@ -19,7 +41,7 @@
     "speaker": "HR-менеджер",
     "lines": [
       {
-        "text": "Спасибо, что взялись за это дело. Ситуация… странная.",
+        "text": "Спасибо, что согласились взяться за это дело.",
         "log": {
           "type": "system",
           "importance": "story"
@@ -72,11 +94,11 @@
         },
         {
           "id": "window",
-          "type": "choice",
+          "type": "evidence",
           "x": 0.18,
           "y": 0.32,
           "payload": {
-            "flag": "noticed_open_window"
+            "evidenceId": "open_window"
           }
         },
         {
@@ -107,7 +129,7 @@
     {
       "id": "colleague",
       "name": "Коллега",
-      "description": "Колега потерпілого, відносини нормальні",
+      "description": "Сотрудница того же отдела",
       "isAvailable": true,
       "dialogue": [
         {
@@ -118,7 +140,21 @@
           }
         },
         {
-          "text": "Сказал, что продолжит работу завтра.",
+          "text": "Он несколько раз спрашивал меня про отпуск за свой счёт.",
+          "log": {
+            "type": "dialogue",
+            "importance": "normal"
+          }
+        },
+        {
+          "text": "Говорил, что хочет \"выйти из игры\". Я подумала, что это шутка.",
+          "log": {
+            "type": "dialogue",
+            "importance": "normal"
+          }
+        },
+        {
+          "text": "В день исчезновения он попрощался. Странно, но спокойно.",
           "log": {
             "type": "dialogue",
             "importance": "normal"
@@ -152,17 +188,41 @@
   "victimPhone": {
     "messages": [
       {
-        "from": "Неизвестный контакт",
-        "text": "Если ты решился — действуй сегодня. Завтра будет поздно.",
-        "log": {
-          "type": "system",
-          "importance": "hint"
-        }
+        "id": "unknown_contact",
+        "name": "Неизвестный",
+        "messages": [
+          {
+            "id": "m1",
+            "from": "other",
+            "text": "Ты не отвечаешь.",
+            "time": "21:48"
+          },
+          {
+            "id": "m2",
+            "from": "owner",
+            "text": "Занят.",
+            "time": "21:52"
+          },
+          {
+            "id": "m3",
+            "from": "other",
+            "text": "Документы готовы.",
+            "time": "22:11"
+          },
+          {
+            "id": "m4",
+            "from": "other",
+            "text": "Ты уверен?",
+            "time": "22:14",
+            "unlocksEvidence": "exit_plan_message"
+          }
+        ]
       }
     ],
     "notes": [
       {
         "text": "Нужно всё подготовить. Исчезнуть тихо.",
+        "date": "Вчера, 22:05",
         "log": {
           "type": "system",
           "importance": "story"
@@ -175,7 +235,8 @@
       "id": "crime_version",
       "text": "Он стал жертвой преступления.",
       "requiredEvidence": [
-        "shredded_note"
+        "shredded_note",
+        "open_window"
       ],
       "result": "fail",
       "log": {
@@ -197,10 +258,8 @@
       "text": "Он инсценировал исчезновение, чтобы уйти.",
       "requiredEvidence": [
         "work_report_draft",
-        "shredded_note"
-      ],
-      "requiredScenePoints": [
-        "window"
+        "shredded_note",
+        "exit_plan_message"
       ],
       "result": "success"
     }

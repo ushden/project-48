@@ -3,8 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as crypto from 'expo-crypto';
 
 import {
-  BoardLink,
-  BoardLinkType,
+  BoardState,
   CaseData,
   CaseEnding,
   CaseHubProgress,
@@ -18,7 +17,6 @@ import {
   TutorialStep
 } from '../types/case';
 import {casesData, casesMeta} from '../data';
-import {evidenceIndex} from '../data/evidence';
 
 const STORAGE_KEY = 'detective_game_save_v1';
 
@@ -57,8 +55,7 @@ type CaseState = {
     completedAt?: number;
   }>;
 
-  boardLinks: BoardLink[];
-  nodePositions: Record<string, {x: number; y: number}>;
+  board: BoardState;
 
   timeLeft: number;
   timerStatus: 'running' | 'stopped';
@@ -78,23 +75,30 @@ type CaseState = {
   calculateRating: () => Rating
   addLog: (type: LogType, text: string, importance?: LogImportance) => void
   getEnding: () => CaseEnding | null
-  addBoardLink: (fromId: string, toId: string, type: BoardLinkType) => void;
-  removeBoardLink: (fromId: string, toId: string) => void;
   saveGame: () => Promise<void>;
   resetGame: () => Promise<void>;
   resetDeduction: () => void;
-  setNodePosition: (id: string, x: number, y: number) => void;
-  calculateLinkScore: () => number;
-  startTimer: () => void;
-  spendTime: (amount: number) => void;
-  advanceTutorial: (step: TutorialStep) => void;
-  finishTutorial: () => void;
-  markLogAsRead: () => void;
-  hasLogFlag: (key: string) => boolean;
-  setLogFlag: (key: string) => void;
   markScenePoint: (sceneId: string, pointId: string) => void;
   updateCaseHubObjectStatus: (key: keyof CaseHubProgress, status: CaseHubProgressStatus) => void;
   setWitnessFlag: (id: string, key: 'isInterviewed', value: boolean) => void;
+
+  // TIMER
+  startTimer: () => void;
+  spendTime: (amount: number) => void;
+
+  // TUTORIAL
+  advanceTutorial: (step: TutorialStep) => void;
+  finishTutorial: () => void;
+
+  // LOGS
+  markLogAsRead: () => void;
+  hasLogFlag: (key: string) => boolean;
+  setLogFlag: (key: string) => void;
+
+  // BOARD
+  setActiveHypothesis: (id: string) => void;
+  toggleEvidenceForActiveHypothesis: (evidenceId: string) => void;
+  isBoardValidFor: (id: string) => boolean;
 };
 
 const upgrade = (r: Rating): Rating => {
@@ -119,8 +123,7 @@ const serializeState = (state: CaseState) => ({
   log: state.log,
   logFlags: state.logFlags,
   caseHub: state.caseHub,
-  boardLinks: state.boardLinks,
-  nodePositions: state.nodePositions,
+  board: state.board,
   tutorial: state.tutorial,
   hintsUsed: state.hintsUsed,
   timeLeft: state.timeLeft,
@@ -139,8 +142,7 @@ const hydrateState = (data: CaseState): Partial<CaseState> => ({
     status: 'idle'
   },
   log: data.log ?? [],
-  boardLinks: data.boardLinks ?? [],
-  nodePositions: data.nodePositions ?? {},
+  board: data.board ?? {activeHypothesisId: null, hypotheses: {}},
   tutorial: data.tutorial ?? {},
   logFlags: data.logFlags ?? {},
   sceneProgress: data.sceneProgress ?? {},
@@ -163,8 +165,10 @@ export const useCaseStore = create<CaseState>((set, get) => ({
   log: [],
   casesProgress: {},
   activeCaseId: null,
-  boardLinks: [],
-  nodePositions: {},
+  board: {
+    hypotheses: {},
+    activeHypothesisId: null
+  },
   timeLeft: 0,
   timerStatus: 'stopped',
   hintsUsed: 0,
@@ -180,7 +184,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
   witnessesFlags: {},
 
   setSystemMessage: (msg: string) => set(() => ({
-    systemMessage: msg,
+    systemMessage: msg
   })),
 
   setWitnessFlag: (id: string, key, value: boolean) => set(state => ({
@@ -189,8 +193,8 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       [id]: {
         ...state.witnessesFlags[id],
         [key]: value
-      },
-    },
+      }
+    }
   })),
 
   updateCaseHubObjectStatus: (key: keyof CaseHubProgress, status: CaseHubProgressStatus) =>
@@ -286,14 +290,6 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     }, 1000);
   },
 
-  setNodePosition: (id: string, x: number, y: number) =>
-    set(state => ({
-      nodePositions: {
-        ...state.nodePositions,
-        [id]: {x, y}
-      }
-    })),
-
   resetGame: async () => {
     await AsyncStorage.removeItem(STORAGE_KEY);
     console.log('RESETED GAME');
@@ -347,8 +343,10 @@ export const useCaseStore = create<CaseState>((set, get) => ({
         status: 'idle'
       },
 
-      boardLinks: [],
-      nodePositions: {},
+      board: {
+        hypotheses: {},
+        activeHypothesisId: null
+      },
 
       timeLeft: caseData.timeLimit,
       timerStatus: 'stopped',
@@ -384,7 +382,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     set(state => {
       if (state.unlockedEvidence.has(evidenceId)) return state;
 
-      const evidence = evidenceIndex[evidenceId];
+      const evidence = get().case?.evidence[evidenceId];
       if (!evidence) return state;
 
       state.addLog(
@@ -394,7 +392,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       );
 
       return {
-        unlockedEvidence: state.unlockedEvidence.add(evidenceId),
+        unlockedEvidence: state.unlockedEvidence.add(evidenceId)
       };
     }),
 
@@ -442,7 +440,8 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       return 'F';
 
     const attemptsUsed = 3 - deductionState.attemptsLeft;
-    const linkScore = get().calculateLinkScore();
+    // const linkScore = get().calculateLinkScore();
+    const linkScore = 0;
 
     let base: Rating;
 
@@ -474,7 +473,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
           timestamp: Date.now(),
           importance: importance ?? 'normal'
         },
-        ...state.log,
+        ...state.log
       ]
     })),
 
@@ -487,64 +486,70 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     return caseData.endings.find(e => e.condition === deductionResult) ?? null;
   },
 
-  addBoardLink: (
-    fromId: string,
-    toId: string,
-    type: BoardLinkType
-  ) => {
-    if (get().tutorial.enabled && get().tutorial.step === 2) {
-      get().advanceTutorial(3);
-      get().addLog('system', tutorialMessages[3]);
+  // BOARD
+  setActiveHypothesis: (id: string) => set(state => ({
+    board: {
+      ...state.board || {},
+      activeHypothesisId: id
     }
-
-    set(state => ({
-      boardLinks: [
-        ...state.boardLinks,
-        {fromId, toId, type}
-      ]
-    }));
-  },
-
-  removeBoardLink: (
-    fromId: string,
-    toId: string
-  ) => set(state => ({
-    boardLinks: state.boardLinks.filter(
-      l => !(l.fromId === fromId && l.toId === toId)
-    )
   })),
+  toggleEvidenceForActiveHypothesis(evidenceId: string) {
+    set(state => {
+      const {activeHypothesisId, hypotheses} = state.board;
 
-  calculateLinkScore: () => {
-    const {boardLinks} = get();
-
-    if (boardLinks.length === 0) return 0;
-
-    let score = 0;
-
-    for (const link of boardLinks) {
-      switch (link.type) {
-        case 'supports':
-          score += 2;
-          break;
-        case 'contradicts':
-          score += 1;
-          break;
-        case 'related':
-          score += 1;
-          break;
+      if (!activeHypothesisId) {
+        return state;
       }
-    }
 
-    return score;
+      const evidences = hypotheses[activeHypothesisId] || [];
+      const isExist = evidences?.includes(evidenceId);
+      const updatedEvidences = isExist ?
+        evidences.filter(e => e !== evidenceId) :
+        [...evidences, evidenceId];
+
+      return {
+        board: {
+          ...state.board,
+          hypotheses: {
+            ...state.board.hypotheses,
+            [activeHypothesisId]: updatedEvidences
+          }
+        }
+      };
+    });
+  },
+  isBoardValidFor(id: string) {
+    const {case: caseData, board} = get();
+
+    const deduction = caseData?.deductions.find(d => d.id === id);
+    if (!deduction) return false;
+
+    const hypotheses = board.hypotheses[id] || [];
+    const requiredEvidence = deduction.requiredEvidence || [];
+    const requiredScenePoints = deduction.requiredScenePoints || [];
+    const hasEvidence = requiredEvidence.every(e => hypotheses?.includes(e));
+    const hasScenePoints = requiredScenePoints.every(p => hypotheses?.includes(p));
+
+    return hasEvidence && hasScenePoints && hypotheses.length === requiredEvidence.length + requiredScenePoints.length;
   }
 }));
 
 useCaseStore.subscribe(
   async (state: CaseState) => {
+    const currentStorage = await AsyncStorage.getItem(STORAGE_KEY);
+    const nextStorage = JSON.stringify(serializeState(state));
+
+    if (currentStorage === nextStorage) {
+      console.log('SKIPPED SAVE');
+
+      return;
+    }
+
     await AsyncStorage.setItem(
       STORAGE_KEY,
       JSON.stringify(serializeState(state))
     );
+    console.log('SAVED');
   }
 );
 

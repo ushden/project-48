@@ -76,7 +76,7 @@ export default function CaseHubScreen() {
           style={styles.phone}
           onPress={() => {
             updateCaseHubObjectStatus('victimPhone', 'visited');
-            navigation.navigate('VictimPhone');
+            navigation.navigate('PhoneHome');
           }}
           state={caseHub.victimPhone}
         />
