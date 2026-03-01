@@ -32,7 +32,8 @@
           "dark": {
             "image": "./assets/splash.png",
             "backgroundColor": "#000000"
-          }
+          },
+          "imageWidth": 200
         }
       ],
       "expo-font"
