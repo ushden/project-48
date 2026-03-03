@@ -152,8 +152,6 @@ export default function CaseMapScreen() {
             style={styles.button}
             disabled={actionDisabled}
             onPress={() => {
-              const caseMeta = casesMeta.find(c => c.id === selectedCaseId);
-
               if (state === 'locked') {
                 if (!hasLogFlag(`locked_attempt_${selectedCase.id}`)) {
                   addLog(
@@ -180,7 +178,8 @@ export default function CaseMapScreen() {
                 }
 
                 navigation.replace('Dialogue', {
-                  portrait: caseMeta?.introDialogue,
+                  caseId: selectedCase.id,
+                  portrait: 'intro',
                   dialogue: caseData.introDialogue,
                   onFinishAction: 'replace',
                   nextScreen: 'CaseHub'

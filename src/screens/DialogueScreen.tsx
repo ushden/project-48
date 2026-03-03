@@ -1,9 +1,11 @@
 import {useEffect, useState} from 'react';
+import {StackNavigationProp} from '@react-navigation/stack';
 import {Image, Pressable, StyleSheet, View} from 'react-native';
 import {useCaseStore} from '../store/caseStore';
 import {RouteProp} from '@react-navigation/native';
 import {RootStackParamList} from '../types/navigation';
-import {StackNavigationProp} from '@react-navigation/stack';
+import {StyledText} from '../components/StyledText';
+import {casesMeta} from '../data';
 
 type GameScreenRouteProp = RouteProp<RootStackParamList, 'Dialogue'>;
 type GameScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Dialogue'>;
@@ -14,7 +16,9 @@ interface Props {
 }
 
 export default function DialogueScreen({route, navigation}: Props) {
-  const {dialogue, portrait, onFinishAction, nextScreen, nextParams, witnessState} = route.params;
+  const {dialogue, caseId, onFinishAction, nextScreen, nextParams, witnessState, portrait} = route.params;
+  const caseMeta = casesMeta.find(c => c.id === caseId);
+  const witnessMeta = caseMeta?.witness?.find(w => w.id === witnessState?.witnessId || '');
   const [index, setIndex] = useState(0);
   const addLog = useCaseStore(s => s.addLog);
   const setWitnessFlag = useCaseStore(s => s.setWitnessFlag);
@@ -59,15 +63,18 @@ export default function DialogueScreen({route, navigation}: Props) {
 
   if (!line) return null;
 
+  const source = portrait === 'intro' ? caseMeta?.introDialogue.source : witnessMeta?.dialoguePortrait.source;
+  const position = portrait === 'intro' ? caseMeta?.introDialogue.position : witnessMeta?.dialoguePortrait.position;
+
   return (
     <Pressable style={styles.container} onPress={next}>
-      {portrait && (
+      {source && (
         <Image
-          source={portrait.source}
+          source={source}
           resizeMode="contain"
           style={[
             styles.portrait,
-            !portrait.position ? styles.center : portrait.position === 'right'
+            !position ? styles.center : position === 'right'
               ? styles.right
               : styles.left
           ]}

@@ -41,27 +41,19 @@ export default function CaseHubScreen() {
       />
 
       {/* Board */}
-      {caseHub.board === 'visited' ? (
-        <CaseHubObject
-          image={require('../../assets/casehub/board_full.png')}
-          title="Доска улик"
-          style={styles.board}
-          onPress={() => {
-            navigation.navigate('MindBoard');
-          }}
-          state={caseHub.board}
-        />
-      ) : (
-        <CaseHubObject
-          image={require('../../assets/casehub/board_empty.png')}
-          title="Доска улик"
-          style={styles.board}
-          onPress={() => {
-            navigation.navigate('MindBoard');
-          }}
-          state={caseHub.board}
-        />
-      )}
+      <CaseHubObject
+        image={require('../../assets/casehub/board_full.png')}
+        title="Дошка доказів"
+        style={styles.board}
+        onPress={() => {
+          if (caseHub.case !== 'visited') {
+            updateCaseHubObjectStatus('board', 'visited');
+          }
+
+          navigation.navigate('MindBoard');
+        }}
+        state={caseHub.board}
+      />
 
       {/* Case */}
       <CaseHubObject

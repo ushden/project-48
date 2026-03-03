@@ -4,10 +4,8 @@ import {DialogueBlock, Messages} from './case';
 export type RootStackParamList = {
   Dialogue: {
     dialogue: DialogueBlock;
-    portrait: {
-      source: ImageSourcePropType;
-      position?: 'left' | 'right' | 'center';
-    };
+    caseId: string;
+    portrait: 'witness' | 'intro';
     witnessState?: {witnessId: string; key: 'isInterviewed', value: boolean};
     dialogueName?: string;
     onFinishAction?: 'goBack' | 'replace' | 'navigate';

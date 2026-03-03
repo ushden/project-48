@@ -52,8 +52,9 @@ export default function WitnessesScreen({navigation, route}: Props) {
     };
 
     navigation.navigate('Dialogue', {
+      caseId,
       dialogue: dialogueBlock,
-      portrait: witnessMeta.dialoguePortrait,
+      portrait: 'witness',
       witnessState: {
         witnessId: witness.id,
         key: 'isInterviewed',
