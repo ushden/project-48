@@ -1,4 +1,5 @@
 import {BoardState, CaseData} from '../types/case';
+import {InvestigationState} from '../types/investigation';
 
 export type CaseOutcome = {
   resultType: 'success' | 'partial' | 'failed';
@@ -9,8 +10,7 @@ export type CaseOutcome = {
 };
 
 type PlayerSnapshot = {
-  unlockedEvidence: Set<string>;
-  sceneProgress: Record<string, {discoveredPoints: string[]}>;
+  investigation: InvestigationState;
   board: BoardState;
   attemptsLeft: number;
 };
@@ -23,17 +23,12 @@ function resolveDeductionResult(
   const ded = caseData.deductions.find(d => d.id === deductionId);
   if (!ded) return 'failed';
 
-  const hasEvidence =
-    ded.requiredEvidence?.every(e =>
-      snapshot.unlockedEvidence.has(e)
-    ) ?? true;
+  const {evidence, discoveredPoints} = snapshot.investigation;
 
-  const hasPoints =
-    ded.requiredScenePoints?.every(p =>
-      Object.values(snapshot.sceneProgress).some(sp =>
-        sp.discoveredPoints.includes(p)
-      )
-    ) ?? true;
+  const hasEvidence = ded.requiredEvidence?.every(e => evidence.has(e)) ?? true;
+  const hasPoints = ded.requiredScenePoints?.every(
+    p => Object.values(discoveredPoints).some(sp => sp.has(p))
+  ) ?? true;
 
   const fullyConfirmed = hasEvidence && hasPoints;
 

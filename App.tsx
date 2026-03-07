@@ -19,6 +19,7 @@ import PhoneHomeScreen from './src/screens/PhoneHomeScreen';
 import PhoneMessagesScreen from './src/screens/PhoneMessagesScreen';
 import PhoneChatScreen from './src/screens/PhoneChatScreen';
 import PhoneNotesScreen from './src/screens/PhoneNotesScreen';
+import InvestigationQuestionsScreen from './src/screens/InvestigationQuestionsScreen';
 
 const Stack = createStackNavigator();
 
@@ -85,6 +86,10 @@ export default function App() {
         <Stack.Screen
           name="CaseHub"
           component={CaseHubScreen}
+        />
+        <Stack.Screen
+          name="Questions"
+          component={InvestigationQuestionsScreen as FunctionComponent}
         />
         <Stack.Screen
           name="Witnesses"

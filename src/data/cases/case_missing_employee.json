@@ -10,26 +10,112 @@
   "difficulty": 1,
   "unlockConditions": [],
   "timeLimit": 180,
+  "investigation": {
+    "questions": [
+      {
+        "id": "last_actions",
+        "text": "Чим він займався перед зникненням?",
+        "resolveConditions": [
+          {
+            "type": "evidenceFound",
+            "id": "work_report_draft",
+            "hint": "Доказ: Чернетка звіту"
+          }
+        ]
+      },
+      {
+        "id": "work_pressure",
+        "text": "Чи був на нього тиск на роботі?",
+        "resolveConditions": [
+          {
+            "type": "dialogueSeen",
+            "id": "manager",
+            "hint": "Допит менеджера"
+          }
+        ]
+      },
+      {
+        "id": "escape_preparation",
+        "text": "Чи готувався він до від'їзду?",
+        "resolveConditions": [
+          {
+            "type": "evidenceFound",
+            "id": "backpack_ready",
+            "hint": "Доказ: Зібраний рюкзак"
+          }
+        ]
+      },
+      {
+        "id": "unknown_contact",
+        "text": "Хто писав йому повідомлення?",
+        "resolveConditions": [
+          {
+            "type": "messageRead",
+            "id": "unknown_contact",
+            "hint": "Чат в телефоні"
+          }
+        ]
+      },
+      {
+        "id": "staged_disappearance",
+        "text": "Чи було його зникнення інсценуванням?",
+        "resolveConditions": [
+          {
+            "type": "evidenceFound",
+            "id": "shredded_note",
+            "hint": "Доказ: Подрібнена записка"
+          },
+          {
+            "type": "evidenceFound",
+            "id": "exit_plan_message",
+            "hint": "Доказ: Повідомлення у телефоні"
+          }
+        ]
+      }
+    ]
+  },
   "evidence": {
     "work_report_draft": {
       "id": "work_report_draft",
       "title": "Чернетка звіту",
-      "description": "Звіт не закінчено. Останні рядки виглядають поспішними, наче його перервали на середині думки. Тема складна, але почерк упевнений – він явно знав, про що писав. Цікаво, що саме не встиг дописати і чому."
+      "description": "Звіт не закінчено. Останні рядки виглядають поспішними, наче його перервали. Але текст структурований — він явно планував завершити роботу перед відходом.",
+      "source": "scene",
+      "category": "behavior"
+    },
+    "calendar_mark": {
+      "id": "calendar_mark",
+      "title": "Позначка у календарі",
+      "description": "На календарі відзначена дата через два дні. Поруч написано: «Нарешті». Це виглядає як очікування певної події.",
+      "source": "scene",
+      "category": "note"
+    },
+    "backpack_ready": {
+      "id": "backpack_ready",
+      "title": "Зібраний рюкзак",
+      "description": "У рюкзаку лежать документи та кілька особистих речей. Він виглядає зібраним заздалегідь.",
+      "source": "scene",
+      "category": "object"
     },
     "shredded_note": {
       "id": "shredded_note",
       "title": "Подрібнена записка",
-      "description": "Записка була розірвана вручну і викинута в кошик. Занадто акуратно для випадковості. Значить, він не хотів, щоби це прочитали. Іноді те, що людина намагається приховати, говорить більше ніж будь-які слова."
+      "description": "Якщо скласти шматки, можна розгледіти слово «квиток». Схоже, він намагався приховати цей запис.",
+      "source": "scene",
+      "category": "note"
     },
     "exit_plan_message": {
       "id": "exit_plan_message",
       "title": "Повідомлення у телефоні",
-      "description": "Повідомлення коротке, без деталей. Схоже на підтвердження заздалегідь обумовленого плану."
+      "description": "Повідомлення коротке: «Документи готові». Це виглядає як підтвердження заздалегідь узгодженого плану.",
+      "source": "phone",
+      "category": "digital"
     },
     "open_window": {
       "id": "open_window",
       "title": "Відчинене вікно",
-      "description": "Вікно прочинене. З вулиці йде прохолодне повітря. Слідів злому немає."
+      "description": "Вікно прочинене, але слідів злому немає. Це виглядає скоріше як деталь інсценування.",
+      "source": "scene",
+      "category": "environment"
     }
   },
   "caseHub": {
@@ -73,7 +159,7 @@
       }
     ]
   },
-  "crimeScene": [
+  "scenes": [
     {
       "id": "office_scene",
       "points": [
@@ -87,12 +173,21 @@
           }
         },
         {
-          "id": "computer",
-          "type": "log",
-          "x": 0.7,
-          "y": 0.35,
+          "id": "calendar",
+          "type": "evidence",
+          "x": 0.89,
+          "y": 0.45,
           "payload": {
-            "text": "Робочий комп'ютер вимкнено. Не схоже, що він йшов поспіхом."
+            "evidenceId": "calendar_mark"
+          }
+        },
+        {
+          "id": "backpack",
+          "type": "evidence",
+          "x": 0.7,
+          "y": 0.45,
+          "payload": {
+            "evidenceId": "backpack_ready"
           }
         },
         {
@@ -118,6 +213,7 @@
           "conditions": [
             {
               "type": "pointDiscovered",
+              "sceneId": "office_scene",
               "pointId": "desk"
             }
           ],
@@ -224,6 +320,7 @@
     ],
     "notes": [
       {
+        "id": "note1",
         "text": "Потрібно підготувати все. Зникнути тихо.",
         "date": "Вчора, 22:05",
         "log": {
@@ -262,7 +359,8 @@
       "requiredEvidence": [
         "work_report_draft",
         "shredded_note",
-        "exit_plan_message"
+        "exit_plan_message",
+        "backpack_ready"
       ],
       "result": "success"
     }

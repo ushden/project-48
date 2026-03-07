@@ -6,12 +6,15 @@ export type RootStackParamList = {
     dialogue: DialogueBlock;
     caseId: string;
     portrait: 'witness' | 'intro';
-    witnessState?: {witnessId: string; key: 'isInterviewed', value: boolean};
+    witnessState?: {witnessId: string};
     dialogueName?: string;
     onFinishAction?: 'goBack' | 'replace' | 'navigate';
     nextScreen?: any;
     nextParams?: any;
   };
+  Questions: {
+    isIntro?: boolean;
+  },
   CaseHub?: {};
   CrimeScene: {
     crimeSceneId: string;
@@ -22,9 +25,9 @@ export type RootStackParamList = {
   };
   MindBoard: {};
   PhoneHome: {};
-  PhoneMessages: {};
+  PhoneMessages?: {};
   PhoneChat: {
     chat: Messages;
   };
-  PhoneNotes: {};
+  PhoneNotes?: {};
 };

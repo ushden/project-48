@@ -5,7 +5,6 @@ import {RouteProp} from '@react-navigation/native';
 
 import {useCaseStore} from '../store/caseStore';
 import {StyledText} from '../components/StyledText';
-import {isScenePointAvailable} from '../engine/sceneConditions';
 import {ScenePoint as ScenePointComp} from '../components/ScenePoint';
 import {RootStackParamList} from '../types/navigation';
 import {StackNavigationProp} from '@react-navigation/stack';
@@ -13,6 +12,7 @@ import {casesData, casesMeta} from '../data';
 import {FloatingJournalButton} from '../components/FloatingJournalButton';
 import {ScenePoint} from '../types/case';
 import {SystemMessage} from '../components/SystemMessage';
+import {checkConditions} from '../engine/conditions';
 
 const {width, height} = Dimensions.get('window');
 
@@ -28,16 +28,15 @@ export default function CrimeSceneScreen({navigation, route}: Props) {
   const {caseId, crimeSceneId} = route.params;
 
   const caseMeta = casesMeta.find(c => c.id === caseId);
-  const sceneMeta = caseMeta?.crimeScene?.find(c => c.id === crimeSceneId);
+  const sceneMeta = caseMeta?.scenes?.find(c => c.id === crimeSceneId);
 
   const caseData = casesData[caseId];
-  const scene = caseData?.crimeScene?.find(c => c.id === crimeSceneId);
+  const scene = caseData?.scenes?.find(c => c.id === crimeSceneId);
 
-  const sceneProgress = useCaseStore(s => s.sceneProgress);
-  const unlockedEvidence = useCaseStore(s => s.unlockedEvidence);
+  const investigation = useCaseStore(s => s.investigation);
 
   const markScenePoint = useCaseStore(s => s.markScenePoint);
-  const unlockEvidence = useCaseStore(s => s.unlockEvidence);
+  const markEvidenceUnlock = useCaseStore(s => s.markEvidenceUnlock);
   const addLog = useCaseStore(s => s.addLog);
   const setLogFlag = useCaseStore(s => s.setLogFlag);
   const hasLogFlag = useCaseStore(s => s.hasLogFlag);
@@ -60,16 +59,16 @@ export default function CrimeSceneScreen({navigation, route}: Props) {
     return null;
   }
 
-  const discovered = sceneProgress[scene.id]?.discoveredPoints ?? [];
+  const discovered = investigation.discoveredPoints[scene.id] ?? new Set<string>();
 
   function handlePointPress(point: ScenePoint) {
-    if (discovered.includes(point.id) || !scene) return;
+    if (discovered.has(point.id) || !scene) return;
 
     markScenePoint(scene.id, point.id);
 
     switch (point.type) {
       case 'evidence': {
-        unlockEvidence(point.payload.evidenceId);
+        markEvidenceUnlock(point.payload.evidenceId);
 
         setSystemMessage('Цей об\'єкт може мати значення. Потрібно перевірити свої записи');
         break;
@@ -110,12 +109,8 @@ export default function CrimeSceneScreen({navigation, route}: Props) {
         {scene.points.map(point => {
           const left = point.x * width;
           const top = point.y * height;
-          const isFound = discovered.includes(point.id);
-          const isAvailable = isScenePointAvailable(
-            point,
-            discovered,
-            unlockedEvidence
-          );
+          const isFound = discovered.has(point.id);
+          const isAvailable = checkConditions(point.conditions, investigation);
 
           if (!isAvailable) return null;
 

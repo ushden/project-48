@@ -21,7 +21,7 @@ export default function DialogueScreen({route, navigation}: Props) {
   const witnessMeta = caseMeta?.witness?.find(w => w.id === witnessState?.witnessId || '');
   const [index, setIndex] = useState(0);
   const addLog = useCaseStore(s => s.addLog);
-  const setWitnessFlag = useCaseStore(s => s.setWitnessFlag);
+  const markDialogueSeen = useCaseStore(s => s.markDialogueSeen);
 
   useEffect(() => {
     const removeListener = navigation.addListener('beforeRemove', e => {
@@ -48,7 +48,9 @@ export default function DialogueScreen({route, navigation}: Props) {
       setIndex(i => i + 1);
     } else {
       if (witnessState) {
-        setWitnessFlag(witnessState.witnessId, witnessState.key, witnessState.value);
+        markDialogueSeen(witnessState.witnessId);
+      } else {
+        markDialogueSeen(dialogue.id);
       }
 
       if (onFinishAction === 'replace') {

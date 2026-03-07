@@ -26,12 +26,6 @@ export type Deduction = {
   };
 };
 
-export type TimeCosts = {
-  openEvidence: number;
-  dialogueStep: number;
-  wrongDeduction: number;
-}
-
 export type DialogueLine = {
   text: string;
   log?: {
@@ -52,8 +46,6 @@ export type Witness = {
   description: string;
   isAvailable: boolean;
   dialogue: DialogueLine[];
-
-  isInterviewed?: boolean;
 };
 
 type Log = {
@@ -76,6 +68,7 @@ export type Message = {
 };
 
 export type Note = {
+  id: string;
   text: string;
   date: string;
   log?: Log;
@@ -124,7 +117,7 @@ export type CrimeSceneMeta = {
 export type CaseMeta = {
   id: string;
   witness: WitnessMeta[];
-  crimeScene: CrimeSceneMeta[];
+  scenes: CrimeSceneMeta[];
   introDialogue: Portrait;
 }
 
@@ -132,6 +125,16 @@ export type EvidenceData = {
   id: string;
   title: string;
   description: string;
+  source: 'scene' | 'phone' | 'dialogue' | 'document' | 'puzzle';
+  category: 'behavior' | 'object' | 'digital' | 'environment' | 'note';
+};
+
+export type Question = {
+  id: string;
+  text: string;
+  resolveConditions: Condition[];
+  resolved?: boolean;
+  questionHint?: string;
 };
 
 export type CaseData = {
@@ -145,10 +148,13 @@ export type CaseData = {
     x: number
     y: number
   };
+  investigation: {
+    questions: Question[];
+  },
   evidence: Record<string, EvidenceData>;
   unlockConditions: CaseUnlockCondition[];
   introDialogue: DialogueBlock;
-  crimeScene: CrimeScene[];
+  scenes: CrimeScene[];
   witnesses: Witness[];
   victimPhone: VictimPhone;
   deductions: Deduction[];
@@ -172,7 +178,6 @@ export type CrimeScene = {
 
 export type LogType = 'evidence' | 'dialogue' | 'deduction' | 'system';
 export type LogImportance = 'normal' | 'hint' | 'story';
-
 export type LogEntry = {
   id: string;
   type: LogType;
@@ -188,15 +193,27 @@ export type BoardState = {
 
 export type TutorialStep = 0 | 1 | 2 | 3 | 4 | 5;
 
-export type SceneCondition =
-  | {type: 'pointDiscovered'; pointId: string}
-  | {type: 'evidenceUnlocked'; evidenceId: string};
-export type SceneProgress = Record<string, {discoveredPoints: string[]}>;
+export type ConditionType =
+  | 'pointDiscovered'
+  | 'evidenceFound'
+  | 'messageRead'
+  | 'notesRead'
+  | 'dialogueSeen'
+  | 'puzzleSolved';
+
+export type Condition = {
+  type: ConditionType
+  id?: string
+  pointId?: string
+  sceneId?: string
+  hint?: string
+}
+
 export type ScenePoint = {
   id: string;
   x: number;
   y: number;
   type: 'evidence' | 'log' | 'choice' | 'empty';
   payload?: any;
-  conditions?: SceneCondition[];
+  conditions?: Condition[];
 };

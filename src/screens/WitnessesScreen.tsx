@@ -21,12 +21,9 @@ export default function WitnessesScreen({navigation, route}: Props) {
   const {caseId} = route.params;
 
   const caseData = casesData[caseId];
-  const witnessesFlags = useCaseStore(s => s.witnessesFlags);
+  const witnesses: Witness[] = caseData.witnesses;
 
-  const witnesses: Witness[] = caseData.witnesses.map(w => ({
-    ...w,
-    isInterviewed: witnessesFlags[w.id]?.isInterviewed ?? false
-  }));
+  const {seenDialogues} = useCaseStore(s => s.investigation);
 
   function openDialogue(witnessId: string) {
     const witness = witnesses.find(w => w.id === witnessId);
@@ -57,8 +54,6 @@ export default function WitnessesScreen({navigation, route}: Props) {
       portrait: 'witness',
       witnessState: {
         witnessId: witness.id,
-        key: 'isInterviewed',
-        value: true,
       },
       onFinishAction: 'replace',
       nextScreen: 'Witnesses',
@@ -92,6 +87,7 @@ export default function WitnessesScreen({navigation, route}: Props) {
           const witnessMeta = casesMeta
             ?.find(c => c.id === caseId)?.witness
             ?.find(w => w.id === item.id);
+          const isInterviewed = seenDialogues.has(item.id);
 
           return (
             <Pressable
@@ -110,7 +106,7 @@ export default function WitnessesScreen({navigation, route}: Props) {
                       source={witnessMeta.listPortrait.source}
                       style={[
                         styles.portrait,
-                        item.isInterviewed && {opacity: 0.45}
+                        isInterviewed && {opacity: 0.45}
                       ]}
                       resizeMode="cover"
                     />
@@ -126,13 +122,13 @@ export default function WitnessesScreen({navigation, route}: Props) {
                     <View
                       style={[
                         styles.statusDot,
-                        item.isInterviewed
+                        isInterviewed
                           ? styles.statusDone
                           : styles.statusNew
                       ]}
                     />
                     <StyledText style={styles.statusText}>
-                      {item.isInterviewed ? 'Опитано' : 'Не опитано'}
+                      {isInterviewed ? 'Опитано' : 'Не опитано'}
                     </StyledText>
                   </View>
                 </View>

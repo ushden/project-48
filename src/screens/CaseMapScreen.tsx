@@ -182,7 +182,8 @@ export default function CaseMapScreen() {
                   portrait: 'intro',
                   dialogue: caseData.introDialogue,
                   onFinishAction: 'replace',
-                  nextScreen: 'CaseHub'
+                  nextScreen: 'Questions',
+                  nextParams: {isIntro: true}
                 });
               }
             }}

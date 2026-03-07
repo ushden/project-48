@@ -35,7 +35,7 @@ export default function CaseHubScreen() {
 
       {/* Background */}
       <Image
-        source={require('../../assets/casehub/desk_bg.jpg')}
+        source={require('../../assets/casehub/desk_bg.webp')}
         style={styles.background}
         resizeMode="cover"
       />
@@ -58,7 +58,7 @@ export default function CaseHubScreen() {
       {/* Case */}
       <CaseHubObject
         image={require('../../assets/casehub/case_file.png')}
-        title="Закрить дело"
+        title="Закрити справу"
         style={styles.case}
         // imgStyle={{transform: [{rotateX: '40deg'}]}}
         onPress={() => {
@@ -67,6 +67,22 @@ export default function CaseHubScreen() {
           }
 
           navigation.navigate('DeductionDialogue');
+        }}
+        state={caseHub.case}
+      />
+
+      {/* Questions */}
+      <CaseHubObject
+        image={require('../../assets/casehub/case_file.png')}
+        title="Блокнот (питання справи)"
+        style={styles.questions}
+        // imgStyle={{transform: [{rotateX: '40deg'}]}}
+        onPress={() => {
+          if (caseHub.case !== 'visited') {
+            updateCaseHubObjectStatus('case', 'visited');
+          }
+
+          navigation.navigate('Questions');
         }}
         state={caseHub.case}
       />
@@ -197,14 +213,22 @@ const styles = StyleSheet.create({
     zIndex: 999,
     top: height * 0.15,
     left: width * 0.1,
-    width: 300,
-    height: 300
+    width: 250,
+    height: 250
   },
   case: {
     position: 'absolute',
     zIndex: 999,
     top: height * 0.8,
-    left: width * 0.28,
+    left: width * 0.02,
+    width: 150,
+    height: 150
+  },
+  questions: {
+    position: 'absolute',
+    zIndex: 999,
+    top: height * 0.8,
+    left: width * 0.38,
     width: 150,
     height: 150
   },

@@ -20,8 +20,8 @@ interface Props {
 export default function MindBoardScreen({navigation}: Props) {
   const {
     case: caseData,
-    unlockedEvidence,
     board,
+    investigation,
     setActiveHypothesis,
     toggleEvidenceForActiveHypothesis,
     updateCaseHubObjectStatus,
@@ -46,10 +46,10 @@ export default function MindBoardScreen({navigation}: Props) {
   );
 
   const evidenceList = useMemo(() => {
-    return Array.from(unlockedEvidence)
+    return Array.from(investigation.evidence)
       .map(id => caseData.evidence[id])
       .filter(Boolean);
-  }, [unlockedEvidence, caseData]);
+  }, [investigation.evidence, caseData]);
 
   const attachedEvidenceIds =
     board.activeHypothesisId

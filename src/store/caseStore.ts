@@ -14,7 +14,8 @@ import {
   TutorialStep
 } from '../types/case';
 import {casesData, casesMeta} from '../data';
-import {CaseOutcome, resolveCaseOutcome} from './caseCore';
+import {CaseOutcome, resolveCaseOutcome} from '../engine/caseCore';
+import {InvestigationState} from '../types/investigation';
 
 const STORAGE_KEY = 'detective_game_save_v1';
 
@@ -35,13 +36,13 @@ type CaseState = {
 
   systemMessage: string;
 
-  unlockedEvidence: Set<string>;
-  sceneProgress: Record<string, {discoveredPoints: string[]}>;
   caseHub: CaseHubType;
 
   deductionState: {
     attemptsLeft: number;
   };
+
+  investigation: InvestigationState;
 
   log: LogEntry[];
   logFlags: Record<string, boolean>;
@@ -62,22 +63,28 @@ type CaseState = {
   hintsUsed: number;
   tutorial: {enabled: boolean; step: TutorialStep};
 
-  witnessesFlags: Record<string, {isInterviewed: boolean}>;
-
-  loadGame: () => void;
-  loadCase: (caseId: string) => CaseData | undefined;
+  // SYSTEM
   setSystemMessage: (msg: string) => void;
-  completeActiveCase: () => void
-  unlockEvidence: (id: string) => void
-  isUnlockedEvidence: (id: string) => boolean
-  submitDeduction: (deductionId: string) => CaseOutcome
+
+  // CASE
+  loadCase: (caseId: string) => CaseData | undefined;
   addLog: (type: LogType, text: string, importance?: LogImportance) => void
-  saveGame: () => Promise<void>;
-  resetGame: () => Promise<void>;
-  resetDeduction: () => void;
-  markScenePoint: (sceneId: string, pointId: string) => void;
+  completeActiveCase: () => void
+  submitDeduction: (deductionId: string) => CaseOutcome
   updateCaseHubObjectStatus: (key: keyof CaseHubProgress, status: CaseHubProgressStatus) => void;
-  setWitnessFlag: (id: string, key: 'isInterviewed', value: boolean) => void;
+
+  // GAME
+  loadGame: () => void;
+  resetGame: () => Promise<void>;
+  saveGame: () => Promise<void>;
+
+  // MARKS
+  markEvidenceUnlock: (id: string) => void
+  markScenePoint: (sceneId: string, pointId: string) => void;
+  markMessageRead: (messageId: string) => void;
+  markDialogueSeen: (dialogueId: string) => void;
+  markPuzzleSolved: (puzzleId: string) => void;
+  markLogAsRead: () => void;
 
   // TIMER
   startTimer: () => void;
@@ -87,8 +94,7 @@ type CaseState = {
   advanceTutorial: (step: TutorialStep) => void;
   finishTutorial: () => void;
 
-  // LOGS
-  markLogAsRead: () => void;
+  // FLAGS
   hasLogFlag: (key: string) => boolean;
   setLogFlag: (key: string) => void;
 
@@ -101,7 +107,6 @@ type CaseState = {
 const serializeState = (state: CaseState) => ({
   casesProgress: state.casesProgress,
   activeCaseId: state.activeCaseId,
-  unlockedEvidence: Array.from(state.unlockedEvidence),
   deductionState: state.deductionState,
   log: state.log,
   logFlags: state.logFlags,
@@ -112,16 +117,35 @@ const serializeState = (state: CaseState) => ({
   timeLeft: state.timeLeft,
   timerStatus: state.timerStatus,
   hasUnreadLogEntries: state.hasUnreadLogEntries,
-  sceneProgress: state.sceneProgress,
-  witnessesFlags: state.witnessesFlags
+  investigation: {
+    evidence: Array.from(state.investigation.evidence),
+    readMessages: Array.from(state.investigation.readMessages),
+    seenDialogues: Array.from(state.investigation.seenDialogues),
+    solvedPuzzles: Array.from(state.investigation.solvedPuzzles),
+    discoveredPoints: Object.fromEntries(
+      Object.entries(state.investigation.discoveredPoints).map(
+        ([sceneId, points]) => [sceneId, Array.from(points)]
+      )
+    )
+  }
 });
 
 const hydrateState = (data: CaseState): Partial<CaseState> => ({
   casesProgress: data.casesProgress ?? {},
   activeCaseId: data.activeCaseId ?? null,
-  unlockedEvidence: new Set(data.unlockedEvidence ?? []),
+  investigation: {
+    evidence: new Set(data.investigation?.evidence ?? []),
+    readMessages: new Set(data.investigation.readMessages ?? []),
+    seenDialogues: new Set(data.investigation.seenDialogues ?? []),
+    solvedPuzzles: new Set(data.investigation.solvedPuzzles ?? []),
+    discoveredPoints: Object.fromEntries(
+      Object.entries(data.investigation.discoveredPoints).map(
+        ([sceneId, points]) => [sceneId, new Set(points ?? [])]
+      )
+    )
+  },
   deductionState: data.deductionState ?? {
-    attemptsLeft: 3,
+    attemptsLeft: 3
   },
   log: data.log ?? [],
   board: data.board ?? {activeHypothesisId: null, hypotheses: {}},
@@ -130,22 +154,29 @@ const hydrateState = (data: CaseState): Partial<CaseState> => ({
     step: 0
   },
   logFlags: data.logFlags ?? {},
-  sceneProgress: data.sceneProgress ?? {},
   caseHub: data.caseHub ?? {},
-  witnessesFlags: data.witnessesFlags ?? {},
   hintsUsed: data.hintsUsed ?? 0,
   timeLeft: data.timeLeft ?? 0,
   timerStatus: data.timerStatus ?? 'stopped',
   hasUnreadLogEntries: data.hasUnreadLogEntries ?? false
 });
 
-export const useCaseStore = create<CaseState>((set, get) => ({
+const initialState: Partial<CaseState> = {
   case: null,
-  unlockedEvidence: new Set(),
   lastOutcome: null,
+
   systemMessage: '',
+
+  investigation: {
+    discoveredPoints: {},
+    evidence: new Set<string>(),
+    readMessages: new Set<string>(),
+    seenDialogues: new Set<string>(),
+    solvedPuzzles: new Set<string>()
+  },
+
   deductionState: {
-    attemptsLeft: 3,
+    attemptsLeft: 3
   },
   log: [],
   casesProgress: {},
@@ -162,24 +193,16 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     step: 0
   },
   hasUnreadLogEntries: false,
-  sceneProgress: {},
   caseHub: {} as CaseHubType,
 
   logFlags: {},
-  witnessesFlags: {},
+};
+
+export const useCaseStore = create<CaseState>((set, get) => ({
+  ...initialState as CaseState,
 
   setSystemMessage: (msg: string) => set(() => ({
     systemMessage: msg
-  })),
-
-  setWitnessFlag: (id: string, key, value: boolean) => set(state => ({
-    witnessesFlags: {
-      ...state.witnessesFlags,
-      [id]: {
-        ...state.witnessesFlags[id],
-        [key]: value
-      }
-    }
   })),
 
   updateCaseHubObjectStatus: (key: keyof CaseHubProgress, status: CaseHubProgressStatus) =>
@@ -190,19 +213,89 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       }
     })),
 
-  markScenePoint: (sceneId, pointId) => set(state => {
-    const existing =
-      state.sceneProgress[sceneId]?.discoveredPoints ?? [];
+  markMessageRead: (messageId) => set(state => {
+    const existing = state.investigation.readMessages ?? new Set<string>();
 
-    if (existing.includes(pointId))
-      return state;
+    if (existing.has(messageId)) return state;
+
+    const newSet = new Set(existing);
+    newSet.add(messageId);
 
     return {
-      sceneProgress: {
-        ...state.sceneProgress,
-        [sceneId]: {
-          discoveredPoints: [...existing, pointId]
+      investigation: {
+        ...state.investigation,
+        readMessages: newSet
+      }
+    };
+  }),
+  markDialogueSeen: (dialogueId) => set(state => {
+    const existing = state.investigation.seenDialogues ?? new Set<string>();
+
+    if (existing.has(dialogueId)) return state;
+
+    const newSet = new Set(existing);
+    newSet.add(dialogueId);
+
+    return {
+      investigation: {
+        ...state.investigation,
+        seenDialogues: newSet
+      }
+    };
+  }),
+  markPuzzleSolved: (puzzleId) => set(state => {
+    const existing = state.investigation.solvedPuzzles ?? new Set<string>();
+
+    if (existing.has(puzzleId)) return state;
+
+    const newSet = new Set(existing);
+    newSet.add(puzzleId);
+
+    return {
+      investigation: {
+        ...state.investigation,
+        solvedPuzzles: newSet
+      }
+    };
+  }),
+  markScenePoint: (sceneId, pointId) => set(state => {
+    const existing = state.investigation.discoveredPoints[sceneId] ?? new Set<string>();
+
+    if (existing.has(pointId)) return state;
+
+    const newSet = new Set(existing);
+    newSet.add(pointId);
+
+    return {
+      investigation: {
+        ...state.investigation,
+        discoveredPoints: {
+          ...state.investigation.discoveredPoints,
+          [sceneId]: newSet
         }
+      }
+    };
+  }),
+  markEvidenceUnlock: (evidenceId: string) => set(state => {
+    if (state.investigation.evidence.has(evidenceId)) return state;
+
+    const evidence = state.case?.evidence?.[evidenceId];
+
+    if (!evidence) return state;
+
+    const newSet = new Set(state.investigation?.evidence ?? []);
+    newSet.add(evidenceId);
+
+    state.addLog(
+      'evidence',
+      `${evidence.title}: ${evidence.description}`,
+      'normal'
+    );
+
+    return {
+      investigation: {
+        ...state.investigation,
+        evidence: newSet
       }
     };
   }),
@@ -283,6 +376,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
 
   resetGame: async () => {
     await AsyncStorage.removeItem(STORAGE_KEY);
+    set({...initialState});
     console.log('RESETED GAME');
   },
   saveGame: async () => {
@@ -326,11 +420,16 @@ export const useCaseStore = create<CaseState>((set, get) => ({
 
       caseHub: caseData.caseHub,
 
-      unlockedEvidence: new Set(),
-      sceneProgress: {},
+      investigation: {
+        discoveredPoints: {},
+        evidence: new Set<string>(),
+        readMessages: new Set<string>(),
+        seenDialogues: new Set<string>(),
+        solvedPuzzles: new Set<string>()
+      },
 
       deductionState: {
-        attemptsLeft: caseData.attempts || 1,
+        attemptsLeft: caseData.attempts || 1
       },
 
       board: {
@@ -368,31 +467,6 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     });
   },
 
-  unlockEvidence: (evidenceId: string) => set(state => {
-    if (state.unlockedEvidence.has(evidenceId))
-      return state;
-
-    const evidence = state.case?.evidence[evidenceId];
-    if (!evidence) return state;
-
-    const newSet = new Set(state.unlockedEvidence);
-    newSet.add(evidenceId);
-
-    state.addLog(
-      'evidence',
-      `${evidence.title}: ${evidence.description}`,
-      'normal'
-    );
-
-    return {
-      unlockedEvidence: newSet
-    };
-  }),
-
-  isUnlockedEvidence: (id) => {
-    return get().unlockedEvidence.has(id);
-  },
-
   submitDeduction: (deductionId): CaseOutcome => {
     const state = get();
     if (!state.case) return {resultType: 'failed'} as CaseOutcome;
@@ -400,8 +474,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     const outcome = resolveCaseOutcome(
       state.case,
       {
-        unlockedEvidence: state.unlockedEvidence,
-        sceneProgress: state.sceneProgress,
+        investigation: state.investigation,
         board: state.board,
         attemptsLeft: state.deductionState.attemptsLeft
       },
@@ -416,19 +489,12 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     set({
       lastOutcome: outcome,
       deductionState: {
-        attemptsLeft,
+        attemptsLeft
       }
     });
 
     return outcome;
   },
-
-  resetDeduction: () =>
-    set({
-      deductionState: {
-        attemptsLeft: 3,
-      }
-    }),
 
   addLog: (type: LogType, text: string, importance?: LogImportance) =>
     set(state => ({
@@ -502,10 +568,7 @@ useCaseStore.subscribe(
       return;
     }
 
-    await AsyncStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(serializeState(state))
-    );
+    await AsyncStorage.setItem(STORAGE_KEY, nextStorage);
     console.log('SAVED');
   }
 );

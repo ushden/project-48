@@ -50,7 +50,7 @@ export default function PhoneHomeScreen({navigation}: Props) {
             icon="document-text-outline"
             label="Заметки"
             highlight={hasNotes}
-            onPress={() => navigation.navigate('PhoneNotes' as any)}
+            onPress={() => navigation.navigate('PhoneNotes')}
           />
 
         </View>

@@ -15,7 +15,7 @@ interface Props {
 }
 
 export default function PhoneMessagesScreen({navigation}: Props) {
-  const {case: caseData} = useCaseStore();
+  const {case: caseData, markMessageRead} = useCaseStore();
 
   const messages = caseData?.victimPhone?.messages || [];
 
@@ -50,11 +50,13 @@ export default function PhoneMessagesScreen({navigation}: Props) {
           renderItem={({item}: {item: Messages}) => (
             <Pressable
               style={styles.chatItem}
-              onPress={() =>
+              onPress={() => {
+                markMessageRead(item.id);
+
                 navigation.navigate('PhoneChat', {
                   chat: item
-                })
-              }
+                });
+              }}
             >
               <View style={styles.row}>
                 <View style={{flex: 1}}>

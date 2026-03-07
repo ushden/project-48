@@ -54,6 +54,7 @@ const Settings = () => {
 
   const handleResetProgress = async () => {
     await resetGame();
+    await new Promise(resolve => setTimeout(resolve, 500));
     setConfirmModalOpened(false);
   };
 
@@ -86,7 +87,7 @@ const Settings = () => {
               <View style={styles.header}>
                 <StyledText style={styles.title}>Налаштування</StyledText>
                 <Pressable onPress={handleSettingsModalToggle}>
-                  <Fontisto name="close-a" size={24} color="black" />
+                  <Fontisto name="close-a" size={18} color="black" />
                 </Pressable>
               </View>
               {/*<View style={styles.settings}>*/}
@@ -181,10 +182,15 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderColor: '#ccc',
   },
   title: {
-    fontSize: 24
+    fontSize: 18,
+    color: '#000',
   },
   content: {
     padding: 24
@@ -199,7 +205,7 @@ const styles = StyleSheet.create({
   },
   resetProgressButton: {
     backgroundColor: '#f1f5f9',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: 'red',
     borderRadius: 20,
     alignItems: 'center',

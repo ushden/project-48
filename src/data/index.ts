@@ -24,11 +24,11 @@ export const casesMeta: CaseMeta[] = [
         },
       },
     ],
-    crimeScene: [
+    scenes: [
       {
         id: 'office_scene',
         portrait: {
-          source: require('../../assets/case_1/case_1_office_scene.jpg'),
+          source: require('../../assets/case_1/case_1_office_scene.webp'),
         },
       },
     ],
