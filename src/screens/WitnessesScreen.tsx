@@ -23,7 +23,7 @@ export default function WitnessesScreen({navigation, route}: Props) {
   const caseData = casesData[caseId];
   const witnesses: Witness[] = caseData.witnesses;
 
-  const {seenDialogues} = useCaseStore(s => s.investigation);
+  const {seenDialogues} = useCaseStore(s => s.runtime.investigation);
 
   function openDialogue(witnessId: string) {
     const witness = witnesses.find(w => w.id === witnessId);
@@ -53,7 +53,7 @@ export default function WitnessesScreen({navigation, route}: Props) {
       dialogue: dialogueBlock,
       portrait: 'witness',
       witnessState: {
-        witnessId: witness.id,
+        witnessId: witness.id
       },
       onFinishAction: 'replace',
       nextScreen: 'Witnesses',
@@ -228,7 +228,7 @@ export const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     color: '#9a9a9a',
-    marginBottom: 3,
+    marginBottom: 3
   },
   statusNew: {
     backgroundColor: '#c9b27c'

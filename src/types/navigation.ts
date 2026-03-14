@@ -24,6 +24,7 @@ export type RootStackParamList = {
     caseId: string;
   };
   MindBoard: {};
+  DeductionDialogue?: {},
   PhoneHome: {};
   PhoneMessages?: {};
   PhoneChat: {

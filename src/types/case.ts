@@ -60,6 +60,7 @@ export type Messages = {
 }
 
 export type Message = {
+  id: string;
   from: string;
   text: string;
   time: string;
@@ -90,10 +91,11 @@ export type CaseHubProgressStatus = 'locked' | 'available' | 'visited';
 
 export type CaseHubProgress = {
   board: CaseHubProgressStatus;
-  case: CaseHubProgressStatus;
+  journal: CaseHubProgressStatus;
   crimeScene: CaseHubProgressStatus;
   witnesses: CaseHubProgressStatus;
   victimPhone: CaseHubProgressStatus;
+  notepad: CaseHubProgressStatus;
 };
 
 export type CaseHubType = Record<keyof CaseHubProgress, CaseHubProgressStatus>;
@@ -113,6 +115,20 @@ export type CrimeSceneMeta = {
   id: string;
   portrait: Portrait;
 };
+
+export type ConditionType =
+  | 'pointDiscovered'
+  | 'evidenceFound'
+  | 'messageRead'
+  | 'notesRead'
+  | 'dialogueSeen'
+  | 'puzzleSolved';
+export type Condition = {
+  type: ConditionType
+  id?: string
+  pointId?: string
+  sceneId?: string
+}
 
 export type CaseMeta = {
   id: string;
@@ -137,6 +153,30 @@ export type Question = {
   questionHint?: string;
 };
 
+export type BoardLayout = {
+  id: string;
+  title: string;
+  requiredEvidence: string[];
+};
+
+export type SceneAction =
+  | {type: 'evidence'; evidenceId: string}
+  | {type: 'dialogue'; dialogueId: string}
+  | {type: 'document'; documentId: string}
+  | {type: 'puzzle'; puzzleId: string}
+  | {type: 'inspect'; text: string}
+export type ScenePoint = {
+  id: string
+  x: number
+  y: number
+  action: SceneAction
+  conditions?: Condition[]
+}
+export type Scene = {
+  id: string;
+  points: ScenePoint[];
+};
+
 export type CaseData = {
   id: string;
   title: string;
@@ -148,15 +188,14 @@ export type CaseData = {
     x: number
     y: number
   };
-  investigation: {
-    questions: Question[];
-  },
+  questions: Question[];
   evidence: Record<string, EvidenceData>;
   unlockConditions: CaseUnlockCondition[];
   introDialogue: DialogueBlock;
-  scenes: CrimeScene[];
+  scenes: Scene[];
   witnesses: Witness[];
   victimPhone: VictimPhone;
+  boardLayout: BoardLayout[];
   deductions: Deduction[];
   endings: CaseEnding[];
   caseHub: CaseHubType;
@@ -171,10 +210,6 @@ export type CaseData = {
   };
 };
 
-export type CrimeScene = {
-  id: string;
-  points: ScenePoint[];
-};
 
 export type LogType = 'evidence' | 'dialogue' | 'deduction' | 'system';
 export type LogImportance = 'normal' | 'hint' | 'story';
@@ -186,34 +221,4 @@ export type LogEntry = {
   importance?: LogImportance;
 };
 
-export type BoardState = {
-  activeHypothesisId: string | null;
-  hypotheses: Record<string, string[]>;
-}
-
 export type TutorialStep = 0 | 1 | 2 | 3 | 4 | 5;
-
-export type ConditionType =
-  | 'pointDiscovered'
-  | 'evidenceFound'
-  | 'messageRead'
-  | 'notesRead'
-  | 'dialogueSeen'
-  | 'puzzleSolved';
-
-export type Condition = {
-  type: ConditionType
-  id?: string
-  pointId?: string
-  sceneId?: string
-  hint?: string
-}
-
-export type ScenePoint = {
-  id: string;
-  x: number;
-  y: number;
-  type: 'evidence' | 'log' | 'choice' | 'empty';
-  payload?: any;
-  conditions?: Condition[];
-};

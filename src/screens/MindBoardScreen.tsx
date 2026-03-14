@@ -1,15 +1,15 @@
-import React, {useEffect, useMemo} from 'react';
-import {FlatList, Image, ImageBackground, Pressable, StyleSheet, View} from 'react-native';
-import Animated, {FadeIn, FadeOut, LinearTransition} from 'react-native-reanimated';
+import React, {useEffect, useMemo, useState} from 'react';
+import {Image, ImageBackground, Pressable, ScrollView, StyleSheet, TouchableOpacity, View} from 'react-native';
 import {useCaseStore} from '../store/caseStore';
 import HypothesisSlider from '../components/HypothesisSlider';
-import {getEvidencePositions} from '../engine/getEvidencePositions';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {StyledText} from '../components/StyledText';
 import {NoteCard} from '../components/NoteCard';
 import {SystemMessage} from '../components/SystemMessage';
 import {RootStackParamList} from '../types/navigation';
 import {StackNavigationProp} from '@react-navigation/stack';
+import EvidencePickerSheet from '../components/EvidencePickerSheet';
+import {getAvailableEvidence, getEvidenceBySection, getHypothesisProgress} from '../store/selectors/boardSelectors';
 
 type GameScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MindBoard'>;
 
@@ -18,48 +18,66 @@ interface Props {
 }
 
 export default function MindBoardScreen({navigation}: Props) {
-  const {
-    case: caseData,
-    board,
-    investigation,
-    setActiveHypothesis,
-    toggleEvidenceForActiveHypothesis,
-    updateCaseHubObjectStatus,
-    isBoardValidFor,
-    setSystemMessage
-  } = useCaseStore();
+  const runtime = useCaseStore(s => s.runtime);
+  const caseData = useCaseStore(s => s.case);
+
+  const toggleEvidenceOnSection = useCaseStore(s => s.toggleEvidenceOnSection);
+  const setActiveHypothesis = useCaseStore(s => s.setActiveHypothesis);
+  const setSystemMessage = useCaseStore(s => s.setSystemMessage);
+  const hasFlag = useCaseStore(s => s.hasFlag);
+  const setFlag = useCaseStore(s => s.setFlag);
+
+  const board = runtime.board;
+  const hypothesisId = board.activeHypothesisId;
+
+  const sections = useMemo(() => caseData?.boardLayout || [], [caseData]);
+  const sectionEvidence = useMemo(() => getEvidenceBySection(runtime, hypothesisId), [runtime, hypothesisId]);
+  const availableEvidence = useMemo(() => getAvailableEvidence(runtime, hypothesisId), [runtime, hypothesisId]);
+
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [selectedSection, setSelectedSection] = useState<string | null>(null);
 
   useEffect(() => {
-    updateCaseHubObjectStatus('board', 'visited');
+    if (!hasFlag('mind_board_first_visit')) {
+      setSystemMessage('Дошка розслідування\n' +
+        '\n' +
+        'Перегортай версії зверху\n' +
+        'Приколюй до них факти\n' +
+        'Версія має пояснювати все\n' +
+        'Інакше це лише здогад'
+      );
+      setFlag('mind_board_first_visit');
+    }
   }, []);
 
-  useEffect(() => {
-    if (!board.activeHypothesisId) {
-      setActiveHypothesis(caseData?.deductions[0]?.id || '');
+  function openPicker(sectionId: string) {
+    setSelectedSection(sectionId);
+    setPickerVisible(true);
+  }
+
+  function handleSelectEvidence(evidenceId: string) {
+    if (!selectedSection || !hypothesisId) return;
+
+    toggleEvidenceOnSection(selectedSection, evidenceId);
+
+    setPickerVisible(false);
+  }
+
+  function handleDeduction() {
+    if (!hypothesisId) return;
+
+    const {total, done} = getHypothesisProgress(sections, runtime, hypothesisId);
+
+    if (total !== done) {
+      setSystemMessage('Нееееее, шось не так. Подивись уважно на дошку, сформуй теорію. Я ХЗ, тут нада робить шось таке, чи ні. ААААаа')
+
+      return;
     }
-  }, [board.activeHypothesisId]);
+
+    navigation.navigate('DeductionDialogue');
+  }
 
   if (!caseData) return null;
-
-  const activeHypothesis = caseData.deductions.find(
-    d => d.id === board.activeHypothesisId
-  );
-
-  const evidenceList = useMemo(() => {
-    return Array.from(investigation.evidence)
-      .map(id => caseData.evidence[id])
-      .filter(Boolean);
-  }, [investigation.evidence, caseData]);
-
-  const attachedEvidenceIds =
-    board.activeHypothesisId
-      ? board.hypotheses[board.activeHypothesisId] || []
-      : [];
-
-  const attachedEvidence = attachedEvidenceIds
-    .map(id => caseData.evidence[id])
-    .filter(Boolean);
-  const positions = getEvidencePositions(attachedEvidence.length);
 
   return (
     <ImageBackground
@@ -110,86 +128,76 @@ export default function MindBoardScreen({navigation}: Props) {
           />
         </View>
 
-        <View style={styles.boardArea}>
-          {activeHypothesis && (
-            <StyledText style={styles.activeTitle}>
-              Гіпотеза
-            </StyledText>
-          )}
+        <ScrollView style={styles.boardArea} showsVerticalScrollIndicator={false}>
+          {sections.map(section => {
+            const evidenceIds = sectionEvidence[section.id] || [];
+            const expected = section.requiredEvidence?.length || 0;
+            const isValid =
+              section.requiredEvidence?.every(e => evidenceIds.includes(e)) &&
+              evidenceIds.length === expected;
 
-          <View style={StyleSheet.absoluteFill}>
-            {attachedEvidence.map((e, index) => {
-              const pos = positions[index];
-              const rotation = (index % 2 === 0 ? -2 : 2) * 2;
-
-              return (
-                <Animated.View
-                  key={e.id}
-                  entering={FadeIn}
-                  exiting={FadeOut}
-                  layout={LinearTransition.springify()}
-                  style={[
-                    styles.attachedCard,
-                    {
-                      position: 'absolute',
-                      left: pos.x - 150,
-                      top: pos.y - 20,
-                      transform: [
-                        {rotate: `${rotation}deg`}
-                      ]
-                    }
-                  ]}
+            return (
+              <View
+                key={section.id}
+                style={styles.section}
+              >
+                <StyledText
+                  style={styles.sectionTitle}
                 >
-                  <Pressable onPress={() => toggleEvidenceForActiveHypothesis(e.id)}>
-                    <NoteCard title={e.title} />
-                  </Pressable>
-                </Animated.View>
-              );
-            })}
-          </View>
+                  {section.title} ({evidenceIds.length}/{expected})
+                  {isValid ? ' ✓' : ''}
+                </StyledText>
+                <View style={styles.sectionContent}>
+                  {evidenceIds.map(id => {
+                    const evidence = caseData.evidence[id];
 
-          {board.activeHypothesisId && (
-            <StyledText style={styles.status}>
-              {isBoardValidFor(board.activeHypothesisId)
-                ? 'Версія виглядає цілісною.'
-                : 'Є деталі, які не пояснені.'}
-            </StyledText>
-          )}
-        </View>
+                    if (!evidence) return null;
 
-        <View style={styles.evidenceList}>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={evidenceList}
-            keyExtractor={item => item.id}
-            contentContainerStyle={{paddingHorizontal: 16}}
-            renderItem={({item}) => {
-              const attached = attachedEvidenceIds?.includes(item.id);
-
-              if (attached) return null;
-
-              return (
-                <Animated.View
-                  entering={FadeIn}
-                  exiting={FadeOut}
-                  layout={LinearTransition.springify()}
-                >
-                  <Pressable
-                    onPress={() =>
-                      toggleEvidenceForActiveHypothesis(item.id)
-                    }
-                    style={styles.evidenceCard}
+                    return (
+                      <NoteCard
+                        key={id}
+                        title={evidence.title}
+                        description={evidence.description}
+                        onPress={() => toggleEvidenceOnSection(section.id, id)}
+                      />
+                    );
+                  })}
+                  <TouchableOpacity
+                    style={styles.addEvidence}
+                    onPress={() => openPicker(section.id)}
+                    activeOpacity={0.7}
                   >
-                    <StyledText style={styles.evidenceText}>
-                      {item.title}
+                    <StyledText style={styles.addEvidenceText}>
+                      Додати доказ
                     </StyledText>
-                  </Pressable>
-                </Animated.View>
-              );
-            }}
-          />
+                  </TouchableOpacity>
+
+                </View>
+
+              </View>
+            );
+          })}
+        </ScrollView>
+
+        <View style={styles.deductionContainer}>
+          <TouchableOpacity
+            style={styles.deductionButton}
+            onPress={handleDeduction}
+            activeOpacity={0.9}
+          >
+            <StyledText style={styles.deductionText}>
+              СФОРМУВАТИ ВИСНОВОК
+            </StyledText>
+          </TouchableOpacity>
         </View>
+
+        <EvidencePickerSheet
+          visible={pickerVisible}
+          evidenceIds={availableEvidence}
+          evidenceMap={caseData.evidence}
+          onSelect={handleSelectEvidence}
+          onClose={() => setPickerVisible(false)}
+        />
       </SafeAreaView>
     </ImageBackground>
   );
@@ -201,7 +209,6 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)'
   },
   header: {
     flexDirection: 'row',
@@ -224,45 +231,52 @@ const styles = StyleSheet.create({
   },
   boardArea: {
     flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: 'flex-start'
+    paddingHorizontal: 16
   },
-  activeTitle: {
-    fontSize: 18,
+  section: {
+    marginBottom: 28,
+    padding: 6
+  },
+  sectionTitle: {
     color: '#fff',
-    marginBottom: 5,
-    textAlign: 'center'
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12
   },
-  attachedArea: {
+  sectionContent: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12
+    gap: 10,
+    paddingVertical: 8
   },
-  attachedCard: {
-    backgroundColor: '#f5e6c8',
-    padding: 8,
-    borderRadius: 8,
-    marginBottom: 12,
-    elevation: 4
+  addEvidence: {
+    width: 120,
+    height: 80,
+    borderWidth: 2,
+    borderColor: '#fff',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8
   },
-  status: {
-    textAlign: 'center',
-    color: '#ddd',
-    fontStyle: 'italic'
-  },
-  evidenceList: {
-    height: 110,
-    paddingBottom: 20
-  },
-  evidenceCard: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    padding: 12,
-    borderRadius: 10,
-    marginRight: 12,
-    minWidth: 120
-  },
-  evidenceText: {
+  addEvidenceText: {
     color: '#fff',
-    fontSize: 12
-  }
+    fontSize: 14
+  },
+  deductionContainer: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderColor: '#444'
+  },
+  deductionButton: {
+    backgroundColor: '#c0392b',
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center'
+  },
+  deductionText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600'
+  },
 });

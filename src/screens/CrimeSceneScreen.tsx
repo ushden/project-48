@@ -33,25 +33,25 @@ export default function CrimeSceneScreen({navigation, route}: Props) {
   const caseData = casesData[caseId];
   const scene = caseData?.scenes?.find(c => c.id === crimeSceneId);
 
-  const investigation = useCaseStore(s => s.investigation);
+  const investigation = useCaseStore(s => s.runtime.investigation);
 
   const markScenePoint = useCaseStore(s => s.markScenePoint);
   const markEvidenceUnlock = useCaseStore(s => s.markEvidenceUnlock);
   const addLog = useCaseStore(s => s.addLog);
-  const setLogFlag = useCaseStore(s => s.setLogFlag);
-  const hasLogFlag = useCaseStore(s => s.hasLogFlag);
+  const setFlag = useCaseStore(s => s.setFlag);
+  const hasFlag = useCaseStore(s => s.hasFlag);
   const setSystemMessage = useCaseStore(s => s.setSystemMessage);
 
   useEffect(() => {
     if (!scene) return;
 
-    if (!hasLogFlag(scene.id)) {
+    if (!hasFlag(scene.id)) {
       addLog(
         'system',
         'Я оглядаю місце події.',
         'story'
       );
-      setLogFlag(scene.id);
+      setFlag(scene.id);
     }
   }, [scene]);
 
@@ -66,32 +66,19 @@ export default function CrimeSceneScreen({navigation, route}: Props) {
 
     markScenePoint(scene.id, point.id);
 
-    switch (point.type) {
+    switch (point.action.type) {
       case 'evidence': {
-        markEvidenceUnlock(point.payload.evidenceId);
+        markEvidenceUnlock(point.action.evidenceId);
 
         setSystemMessage('Цей об\'єкт може мати значення. Потрібно перевірити свої записи');
         break;
       }
-      case 'log': {
+      case 'inspect': {
         addLog(
           'system',
-          point.payload.text
+          point.action.text
         );
-        setSystemMessage(point.payload.text);
-        break;
-      }
-      case 'choice': {
-        addLog(
-          'system',
-          'Я звернув увагу на одну деталь.',
-          'hint'
-        );
-        setSystemMessage('Я звернув увагу на одну деталь.');
-        break;
-      }
-      case 'empty': {
-        setSystemMessage('Тут немає нічого важливого.');
+        setSystemMessage(point.action.text);
         break;
       }
     }

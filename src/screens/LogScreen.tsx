@@ -87,7 +87,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 26,
     color: '#1e1e1e',
-    fontFamily: 'LibreRegular'
   },
   hint: {
     color: '#3a4a6a'

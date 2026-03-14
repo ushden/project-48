@@ -1,11 +1,12 @@
-import {BoardState, CaseData} from '../types/case';
-import {InvestigationState} from '../types/investigation';
+import {BoardLayout, CaseData} from '../types/case';
+import {BoardState, InvestigationState} from '../types/investigation';
 
 export type CaseOutcome = {
   resultType: 'success' | 'partial' | 'failed';
   ratingScore: number;
   ratingGrade: string;
   linkScore: number;
+  deductionId: string;
   endingId?: string;
 };
 
@@ -41,8 +42,18 @@ function resolveDeductionResult(
   return 'failed';
 }
 
-function calculateLinkScore(board: BoardState): number {
-  return Object.values(board.hypotheses).reduce((acc, arr) => acc + arr.length, 0);
+function calculateLinkScore(boardLayout: BoardLayout[], board: BoardState, deductionId: string): number {
+  return boardLayout.reduce((acc, arr) => {
+    const section = board.hypotheses[deductionId].sections[arr.id];
+
+    arr.requiredEvidence.forEach(i => {
+      if (section.includes(i)) {
+        acc += 5;
+      }
+    });
+
+    return acc;
+  }, 0);
 }
 
 function calculateRating(
@@ -50,8 +61,11 @@ function calculateRating(
   attemptsLeft: number,
   linkScore: number
 ): {score: number; grade: string} {
-  const base = resultType === 'success' ? 70 : resultType === 'partial' ? 40 : 0;
-  const score = base + attemptsLeft * 5 + linkScore * 3;
+  const base = resultType === 'success' ? 80 : resultType === 'partial' ? 50 : 0;
+  let score = base + attemptsLeft * 5 + linkScore * 3;
+
+  if (score > 100) score = 100;
+
   const grade = score >= 90 ? 'S' : score >= 75 ? 'A' : score >= 50 ? 'B' : score >= 30 ? 'C' : 'D';
 
   return {score, grade};
@@ -74,7 +88,7 @@ export function resolveCaseOutcome(
     snapshot,
     deductionId
   );
-  const linkScore = calculateLinkScore(snapshot.board);
+  const linkScore = calculateLinkScore(caseData.boardLayout, snapshot.board, deductionId);
   const {score, grade} = calculateRating(
     resultType,
     snapshot.attemptsLeft,
@@ -88,6 +102,7 @@ export function resolveCaseOutcome(
     ratingScore: score,
     ratingGrade: grade,
     linkScore,
+    deductionId,
     endingId: ending?.id
   };
 }

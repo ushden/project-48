@@ -21,13 +21,14 @@ interface Props {
 export default function PhoneChatScreen({route, navigation}: Props) {
   const {chat} = route.params;
 
-  const {markEvidenceUnlock} = useCaseStore();
+  const {markEvidenceUnlock, markMessageRead} = useCaseStore();
 
   useEffect(() => {
     const evidenceToUnlock = chat.messages.find(m => m.unlocksEvidence);
 
     if (evidenceToUnlock?.unlocksEvidence) {
       markEvidenceUnlock(evidenceToUnlock.unlocksEvidence);
+      markMessageRead(evidenceToUnlock.id);
     }
   }, []);
 

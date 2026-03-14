@@ -46,10 +46,10 @@ export default function CaseResultScreen() {
 
   const headerText =
     resultType === 'success'
-      ? 'Дело закрыто'
+      ? 'Справу закрито'
       : resultType === 'partial'
-        ? 'Версия требует уточнения'
-        : 'Вывод не подтверждён';
+        ? 'Версія потребує детальнішого розгляду'
+        : 'Висновок не підтверджено';
 
   const summaryText = buildSummary(resultType);
 

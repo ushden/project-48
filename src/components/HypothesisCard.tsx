@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import {StyleSheet} from 'react-native';
+import {StyleSheet, Text, View} from 'react-native';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -10,7 +10,6 @@ import Animated, {
   withTiming
 } from 'react-native-reanimated';
 import {Deduction} from '../types/case';
-import {StyledText} from './StyledText';
 import {NoteCard} from './NoteCard';
 
 const ITEM_WIDTH = 280;
@@ -73,10 +72,8 @@ export function HypothesisCard(props: Props) {
 
   return (
     <Animated.View style={[styles.card, animatedStyle]}>
-      <NoteCard
-        title={item.text}
-        size="large"
-      />
+      <View style={styles.pin} />
+      <Text style={styles.title}>{item.text}</Text>
     </Animated.View>
   );
 }
@@ -84,9 +81,27 @@ export function HypothesisCard(props: Props) {
 const styles = StyleSheet.create({
   card: {
     width: ITEM_WIDTH,
-    backgroundColor: '#f5e6c8',
+    backgroundColor: '#fff3b0',
     padding: 8,
+    paddingVertical: 20,
     borderRadius: 8,
-    elevation: 4
-  }
+    elevation: 2
+  },
+  title: {
+    fontFamily: 'SweetMavka',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  pin: {
+    position: 'absolute',
+    top: -5,
+    left: '50%',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#c0392b',
+    marginBottom: -5,
+    zIndex: 10
+  },
 });

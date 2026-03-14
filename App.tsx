@@ -41,10 +41,8 @@ export default function App() {
   const [loaded, error] = useFonts({
     Cormorant: require('./assets/fonts/CormorantGaramond-Bold.ttf'),
     LibreBold: require('./assets/fonts/LibreBaskerville-Bold.ttf'),
-    LibreRegular: require('./assets/fonts/LibreBaskerville-Regular.ttf'),
-    LibreMedium: require('./assets/fonts/LibreBaskerville-Medium.ttf'),
-    LibreSemiBold: require('./assets/fonts/LibreBaskerville-SemiBold.ttf'),
-    LibreFranklinRegular: require('./assets/fonts/LibreFranklin-Regular.ttf')
+    LibreFranklinRegular: require('./assets/fonts/LibreFranklin-Regular.ttf'),
+    SweetMavka: require('./assets/fonts/Sweet-Mavka-Script.ttf'),
   });
 
   useEffect(() => {

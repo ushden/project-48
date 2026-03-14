@@ -1,91 +1,96 @@
-import React from 'react';
-import {StyleSheet, View} from 'react-native';
-import {StyledText} from './StyledText';
+import React, {useEffect, useMemo} from 'react';
+import {Pressable, StyleSheet, Text, View} from 'react-native';
+import Animated, {useAnimatedStyle, useSharedValue, withSpring} from 'react-native-reanimated';
 
 type Props = {
   title: string;
-  size?: 'small' | 'large';
+  description?: string;
+  onPress: () => void;
 };
 
-export function NoteCard(props: Props) {
-  const {title, size = 'small'} = props;
-  const isLarge = size === 'large';
+const AnimatedView = Animated.createAnimatedComponent(View);
+
+export function NoteCard({title, description, onPress}: Props) {
+  const rotation = useMemo(() => {
+    const deg = Math.random() * 6 - 3;
+    return `${deg}deg`;
+  }, []);
+
+  const offset = useMemo(() => {
+    return {
+      x: Math.random() * 12 - 6,
+      y: Math.random() * 12 - 6
+    };
+  }, []);
+
+  const scale = useSharedValue(0.75);
+
+  useEffect(() => {
+    scale.value = withSpring(1, {
+      damping: 10,
+      stiffness: 120
+    });
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      {translateX: offset.x},
+      {translateY: offset.y},
+      {rotate: rotation},
+      {scale: scale.value}
+    ]
+  }));
 
   return (
-    <View
-      style={[
-        styles.paper,
-        isLarge && styles.largePaper
-      ]}
-    >
-      {/* Булавка */}
-      <View style={styles.pinWrapper}>
-        <View style={styles.pin} />
-      </View>
-
-      <StyledText
-        style={[
-          styles.text,
-          isLarge && styles.largeText
-        ]}
-      >
-        {title}
-      </StyledText>
-    </View>
+    <AnimatedView style={[styles.wrapper, animatedStyle]}>
+      <View style={styles.pin} />
+      <Pressable style={styles.card} onPress={onPress}>
+        <Text style={styles.title}>{title}</Text>
+        {description ? (
+          <Text style={styles.desc}>{description}</Text>
+        ) : null}
+      </Pressable>
+    </AnimatedView>
   );
 }
 
 const styles = StyleSheet.create({
-  paper: {
-    width: '100%',
-    minHeight: 50,
-    backgroundColor: '#e6d8b8',
-    borderRadius: 4,
-    padding: 12,
-    justifyContent: 'center',
+  wrapper: {
+    alignItems: 'center',
+    marginVertical: 6
+  },
+  pin: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#c0392b',
+    marginBottom: -5,
+    zIndex: 2
+  },
+  card: {
+    width: 140,
+    minHeight: 90,
+
+    backgroundColor: '#fff3b0',
+    borderRadius: 6,
+    padding: 10,
 
     shadowColor: '#000',
     shadowOpacity: 0.25,
     shadowRadius: 6,
-    shadowOffset: {width: 2, height: 4},
+    shadowOffset: {width: 0, height: 3},
 
-    borderWidth: 1,
-    borderColor: '#c9b88f'
+    elevation: 5
   },
-
-  largePaper: {
-    minHeight: 110
+  title: {
+    fontFamily: 'SweetMavka',
+    fontSize: 16,
+    fontWeight: '500'
   },
-
-  text: {
-    color: '#1e1e1e',
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 16
-  },
-
-  largeText: {
+  desc: {
+    fontFamily: 'SweetMavka',
     fontSize: 14,
-    fontWeight: '600'
-  },
-
-  pinWrapper: {
-    position: 'absolute',
-    top: -6,
-    left: 0,
-    right: 0,
-    alignItems: 'center'
-  },
-
-  pin: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#7b1e1e',
-
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowRadius: 3,
-    shadowOffset: {width: 1, height: 2}
+    marginTop: 4,
+    color: '#444'
   }
 });

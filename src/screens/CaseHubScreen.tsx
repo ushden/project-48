@@ -14,7 +14,7 @@ const {width, height} = Dimensions.get('window');
 export default function CaseHubScreen() {
   const navigation = useNavigation<any>();
 
-  const {caseHub, updateCaseHubObjectStatus, activeCaseId} = useCaseStore();
+  const {caseHub, updateCaseHubObjectStatus, activeCaseId, hasUnreadLogEntries} = useCaseStore();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -55,36 +55,35 @@ export default function CaseHubScreen() {
         state={caseHub.board}
       />
 
-      {/* Case */}
+       {/* Journal */}
       <CaseHubObject
         image={require('../../assets/casehub/case_file.png')}
-        title="Закрити справу"
-        style={styles.case}
-        // imgStyle={{transform: [{rotateX: '40deg'}]}}
+        title="Журнал"
+        style={styles.journal}
         onPress={() => {
-          if (caseHub.case !== 'visited') {
-            updateCaseHubObjectStatus('case', 'visited');
+          if (caseHub.journal !== 'visited') {
+            updateCaseHubObjectStatus('journal', 'visited');
           }
 
-          navigation.navigate('DeductionDialogue');
+          navigation.navigate('Log');
         }}
-        state={caseHub.case}
+        state={caseHub.journal}
+        tooltip={hasUnreadLogEntries && 'Новий допис'}
       />
 
       {/* Questions */}
       <CaseHubObject
-        image={require('../../assets/casehub/case_file.png')}
-        title="Блокнот (питання справи)"
+        image={require('../../assets/casehub/notepad.webp')}
+        title="Записник"
         style={styles.questions}
-        // imgStyle={{transform: [{rotateX: '40deg'}]}}
         onPress={() => {
           if (caseHub.case !== 'visited') {
-            updateCaseHubObjectStatus('case', 'visited');
+            updateCaseHubObjectStatus('notepad', 'visited');
           }
 
           navigation.navigate('Questions');
         }}
-        state={caseHub.case}
+        state={caseHub.notepad}
       />
 
       {/* Crime Scene */}
@@ -138,9 +137,6 @@ export default function CaseHubScreen() {
           state={caseHub.victimPhone}
         />
       )}
-
-      {/* Floating UI */}
-      <FloatingJournalButton />
     </SafeAreaView>
   );
 }
@@ -152,10 +148,11 @@ type CaseHubObjectProps = {
   onPress: () => void;
   style: any;
   imgStyle?: any;
+  tooltip?: string;
 };
 
 function CaseHubObject(data: CaseHubObjectProps) {
-  const {image, title, onPress, style, imgStyle, state} = data;
+  const {image, title, onPress, style, imgStyle, state, tooltip} = data;
 
   return (
     <Pressable
@@ -167,6 +164,7 @@ function CaseHubObject(data: CaseHubObjectProps) {
       ]}
     >
       <StyledText style={styles.objectTitle}>{title}</StyledText>
+      {tooltip && (<StyledText style={styles.objectTooltip}>{tooltip}</StyledText>)}
       <Image source={image} style={[styles.objectImage, imgStyle]} resizeMode="cover" />
     </Pressable>
   );
@@ -207,50 +205,61 @@ const styles = StyleSheet.create({
     color: '#cfcfcf',
     opacity: 0.6
   },
+  objectTooltip: {
+    position: 'absolute',
+    top: 20,
+    zIndex: 1,
+    textAlign: 'center',
+    fontSize: 13,
+    color: '#cfcfcf',
+    paddingHorizontal: 4,
+    borderRadius: 4,
+    backgroundColor: 'rgba(0,60,255,0.4)',
+  },
   /* Positions */
   board: {
     position: 'absolute',
     zIndex: 999,
-    top: height * 0.15,
-    left: width * 0.1,
-    width: 250,
-    height: 250
+    top: height * 0.05,
+    left: width * 0.02,
+    width: 280,
+    height: 280
   },
-  case: {
+  journal: {
     position: 'absolute',
     zIndex: 999,
-    top: height * 0.8,
-    left: width * 0.02,
-    width: 150,
-    height: 150
+    top: height * 0.72,
+    left: width * 0.01,
+    width: 200,
+    height: 200
   },
   questions: {
     position: 'absolute',
     zIndex: 999,
-    top: height * 0.8,
-    left: width * 0.38,
-    width: 150,
-    height: 150
+    top: height * 0.77,
+    left: width * 0.55,
+    width: 160,
+    height: 160
   },
   crimeScene: {
     position: 'absolute',
     zIndex: 999,
-    top: height * 0.55,
-    left: width * 0.4,
-    width: 120,
-    height: 120
+    top: height * 0.4,
+    left: width * 0.2,
+    width: 130,
+    height: 130
   },
   witnesses: {
-    top: height * 0.64,
+    top: height * 0.55,
     left: width * 0.01,
-    width: 120,
-    height: 120
+    width: 130,
+    height: 130
   },
   phone: {
-    top: height * 0.73,
-    right: width * 0.01,
-    width: 100,
-    height: 100
+    top: height * 0.55,
+    right: width * 0.1,
+    width: 150,
+    height: 150
   },
   visited: {
     opacity: 0.8

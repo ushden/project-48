@@ -28,21 +28,21 @@ export default function CaseMapScreen() {
   const progress = useCaseStore(s => s.casesProgress);
   const activeCaseId = useCaseStore(s => s.activeCaseId);
   const addLog = useCaseStore(s => s.addLog);
-  const hasLogFlag = useCaseStore(s => s.hasLogFlag);
-  const setLogFlag = useCaseStore(s => s.setLogFlag);
+  const hasFlag = useCaseStore(s => s.hasFlag);
+  const setFlag = useCaseStore(s => s.setFlag);
 
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(casesMeta[0].id);
 
   const selectedCase = casesData[selectedCaseId || ''];
 
   useEffect(() => {
-    if (!hasLogFlag('map_intro')) {
+    if (!hasFlag('map_intro')) {
       addLog(
         'evidence',
         'Місто виглядає спокійним. Але я знаю – тиша тут оманлива.',
         'story'
       );
-      setLogFlag('map_intro');
+      setFlag('map_intro');
     }
   }, []);
 
@@ -153,13 +153,13 @@ export default function CaseMapScreen() {
             disabled={actionDisabled}
             onPress={() => {
               if (state === 'locked') {
-                if (!hasLogFlag(`locked_attempt_${selectedCase.id}`)) {
+                if (!hasFlag(`locked_attempt_${selectedCase.id}`)) {
                   addLog(
                     'system',
                     'Я поспішаю. Без потрібного досвіду це розслідування лише заплутає мене.',
                     'hint'
                   );
-                  setLogFlag(`locked_attempt_${selectedCase.id}`);
+                  setFlag(`locked_attempt_${selectedCase.id}`);
                 }
                 return;
               }

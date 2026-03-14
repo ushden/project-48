@@ -19,8 +19,8 @@ export const CaseDot = (props: CaseDotProps) => {
   const scale = useRef(new Animated.Value(1)).current;
 
   const addLog = useCaseStore(s => s.addLog);
-  const hasLogFlag = useCaseStore(s => s.hasLogFlag);
-  const setLogFlag = useCaseStore(s => s.setLogFlag);
+  const hasFlag = useCaseStore(s => s.hasFlag);
+  const setFlag = useCaseStore(s => s.setFlag);
 
   const isSelected = caseData.id === selectedCaseId;
   const left = caseData.position.x * width;
@@ -41,13 +41,13 @@ export const CaseDot = (props: CaseDotProps) => {
           setSelectedCaseId(caseData.id);
         }
 
-        if (state === 'locked' && !hasLogFlag(`locked_${caseData.id}`)) {
+        if (state === 'locked' && !hasFlag(`locked_${caseData.id}`)) {
           addLog(
             'system',
             'Ця справа поки що мені не під силу. Потрібно розібратись з іншими питаннями.',
             'hint'
           );
-          setLogFlag(`locked_${caseData.id}`);
+          setFlag(`locked_${caseData.id}`);
         }
       }}
       style={[{left, top}]}

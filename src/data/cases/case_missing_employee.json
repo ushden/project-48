@@ -10,70 +10,66 @@
   "difficulty": 1,
   "unlockConditions": [],
   "timeLimit": 180,
-  "investigation": {
-    "questions": [
-      {
-        "id": "last_actions",
-        "text": "Чим він займався перед зникненням?",
-        "resolveConditions": [
-          {
-            "type": "evidenceFound",
-            "id": "work_report_draft",
-            "hint": "Доказ: Чернетка звіту"
-          }
-        ]
-      },
-      {
-        "id": "work_pressure",
-        "text": "Чи був на нього тиск на роботі?",
-        "resolveConditions": [
-          {
-            "type": "dialogueSeen",
-            "id": "manager",
-            "hint": "Допит менеджера"
-          }
-        ]
-      },
-      {
-        "id": "escape_preparation",
-        "text": "Чи готувався він до від'їзду?",
-        "resolveConditions": [
-          {
-            "type": "evidenceFound",
-            "id": "backpack_ready",
-            "hint": "Доказ: Зібраний рюкзак"
-          }
-        ]
-      },
-      {
-        "id": "unknown_contact",
-        "text": "Хто писав йому повідомлення?",
-        "resolveConditions": [
-          {
-            "type": "messageRead",
-            "id": "unknown_contact",
-            "hint": "Чат в телефоні"
-          }
-        ]
-      },
-      {
-        "id": "staged_disappearance",
-        "text": "Чи було його зникнення інсценуванням?",
-        "resolveConditions": [
-          {
-            "type": "evidenceFound",
-            "id": "shredded_note",
-            "hint": "Доказ: Подрібнена записка"
-          },
-          {
-            "type": "evidenceFound",
-            "id": "exit_plan_message",
-            "hint": "Доказ: Повідомлення у телефоні"
-          }
-        ]
-      }
-    ]
-  },
+  "questions": [
+    {
+      "id": "last_actions",
+      "text": "Чим він займався перед зникненням?",
+      "resolveConditions": [
+        {
+          "type": "evidenceFound",
+          "id": "work_report_draft"
+        }
+      ]
+    },
+    {
+      "id": "work_pressure",
+      "text": "Чи був на нього тиск на роботі?",
+      "resolveConditions": [
+        {
+          "type": "dialogueSeen",
+          "id": "manager"
+        }
+      ]
+    },
+    {
+      "id": "escape_preparation",
+      "text": "Чи готувався він до від'їзду?",
+      "resolveConditions": [
+        {
+          "type": "evidenceFound",
+          "id": "backpack_ready"
+        },
+        {
+          "type": "evidenceFound",
+          "id": "calendar_mark"
+        }
+      ]
+    },
+    {
+      "id": "unknown_contact",
+      "text": "Хто писав йому повідомлення?",
+      "resolveConditions": [
+        {
+          "type": "messageRead",
+          "id": "m4"
+        }
+      ]
+    },
+    {
+      "id": "staged_disappearance",
+      "text": "Чи було його зникнення інсценуванням?",
+      "resolveConditions": [
+        {
+          "type": "evidenceFound",
+          "id": "shredded_note"
+        },
+        {
+          "type": "evidenceFound",
+          "id": "exit_plan_message"
+        }
+      ]
+    }
+  ],
   "evidence": {
     "work_report_draft": {
       "id": "work_report_draft",
@@ -165,51 +161,53 @@
       "points": [
         {
           "id": "desk",
-          "type": "evidence",
-          "x": 0.8,
-          "y": 0.45,
-          "payload": {
+          "x": 0.55,
+          "y": 0.5,
+          "action": {
+            "type": "evidence",
             "evidenceId": "work_report_draft"
           }
         },
         {
           "id": "calendar",
-          "type": "evidence",
-          "x": 0.89,
-          "y": 0.45,
-          "payload": {
+          "x": 0.8,
+          "y": 0.25,
+          "action": {
+            "type": "evidence",
             "evidenceId": "calendar_mark"
           }
         },
         {
           "id": "backpack",
-          "type": "evidence",
-          "x": 0.7,
-          "y": 0.45,
-          "payload": {
+          "x": 0.05,
+          "y": 0.65,
+          "action": {
+            "type": "evidence",
             "evidenceId": "backpack_ready"
           }
         },
         {
           "id": "window",
-          "type": "evidence",
           "x": 0.18,
           "y": 0.32,
-          "payload": {
+          "action": {
+            "type": "evidence",
             "evidenceId": "open_window"
           }
         },
         {
           "id": "chair",
-          "type": "empty",
-          "x": 0.28,
-          "y": 0.55
+          "x": 0.08,
+          "y": 0.87,
+          "action": {
+            "type": "inspect",
+            "text": "Звичайний офісний стілець. Нічого підозрілого."
+          }
         },
         {
           "id": "trash",
-          "type": "evidence",
-          "x": 0.76,
-          "y": 0.65,
+          "x": 0.8,
+          "y": 0.73,
           "conditions": [
             {
               "type": "pointDiscovered",
@@ -217,7 +215,8 @@
               "pointId": "desk"
             }
           ],
-          "payload": {
+          "action": {
+            "type": "evidence",
             "evidenceId": "shredded_note"
           }
         }
@@ -330,6 +329,23 @@
       }
     ]
   },
+  "boardLayout": [
+    {
+      "id": "motive",
+      "title": "Мотив",
+      "requiredEvidence": ["work_report_draft"]
+    },
+    {
+      "id": "preparation",
+      "title": "Підготовка",
+      "requiredEvidence": ["backpack_ready", "calendar_mark"]
+    },
+    {
+      "id": "plan",
+      "title": "План",
+      "requiredEvidence": ["shredded_note", "exit_plan_message"]
+    }
+  ],
   "deductions": [
     {
       "id": "crime_version",

@@ -3,7 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as crypto from 'expo-crypto';
 
 import {
-  BoardState,
   CaseData,
   CaseHubProgress,
   CaseHubProgressStatus,
@@ -15,7 +14,7 @@ import {
 } from '../types/case';
 import {casesData, casesMeta} from '../data';
 import {CaseOutcome, resolveCaseOutcome} from '../engine/caseCore';
-import {InvestigationState} from '../types/investigation';
+import {CaseRuntimeState, HypothesisBoard} from '../types/investigation';
 
 const STORAGE_KEY = 'detective_game_save_v1';
 
@@ -34,6 +33,8 @@ type CaseState = {
 
   lastOutcome: CaseOutcome | null;
 
+  runtime: CaseRuntimeState;
+
   systemMessage: string;
 
   caseHub: CaseHubType;
@@ -42,10 +43,7 @@ type CaseState = {
     attemptsLeft: number;
   };
 
-  investigation: InvestigationState;
-
   log: LogEntry[];
-  logFlags: Record<string, boolean>;
   hasUnreadLogEntries: boolean;
 
   casesProgress: Record<string, {
@@ -55,8 +53,6 @@ type CaseState = {
     completedAt?: number;
   }>;
 
-  board: BoardState;
-
   timeLeft: number;
   timerStatus: 'running' | 'stopped';
 
@@ -65,6 +61,7 @@ type CaseState = {
 
   // SYSTEM
   setSystemMessage: (msg: string) => void;
+  flags: Record<string, boolean>;
 
   // CASE
   loadCase: (caseId: string) => CaseData | undefined;
@@ -95,12 +92,12 @@ type CaseState = {
   finishTutorial: () => void;
 
   // FLAGS
-  hasLogFlag: (key: string) => boolean;
-  setLogFlag: (key: string) => void;
+  hasFlag: (key: string) => boolean;
+  setFlag: (key: string) => void;
 
   // BOARD
   setActiveHypothesis: (id: string) => void;
-  toggleEvidenceForActiveHypothesis: (evidenceId: string) => void;
+  toggleEvidenceOnSection: (sectionId: string, evidenceId: string) => void;
   isBoardValidFor: (id: string) => boolean;
 };
 
@@ -109,51 +106,56 @@ const serializeState = (state: CaseState) => ({
   activeCaseId: state.activeCaseId,
   deductionState: state.deductionState,
   log: state.log,
-  logFlags: state.logFlags,
+  flags: state.flags,
   caseHub: state.caseHub,
-  board: state.board,
   tutorial: state.tutorial,
   hintsUsed: state.hintsUsed,
   timeLeft: state.timeLeft,
   timerStatus: state.timerStatus,
   hasUnreadLogEntries: state.hasUnreadLogEntries,
-  investigation: {
-    evidence: Array.from(state.investigation.evidence),
-    readMessages: Array.from(state.investigation.readMessages),
-    seenDialogues: Array.from(state.investigation.seenDialogues),
-    solvedPuzzles: Array.from(state.investigation.solvedPuzzles),
-    discoveredPoints: Object.fromEntries(
-      Object.entries(state.investigation.discoveredPoints).map(
-        ([sceneId, points]) => [sceneId, Array.from(points)]
+  runtime: {
+    board: state.runtime.board,
+    investigation: {
+      evidence: Array.from(state.runtime.investigation.evidence),
+      readMessages: Array.from(state.runtime.investigation.readMessages),
+      seenDialogues: Array.from(state.runtime.investigation.seenDialogues),
+      solvedPuzzles: Array.from(state.runtime.investigation.solvedPuzzles),
+      discoveredPoints: Object.fromEntries(
+        Object.entries(state.runtime.investigation.discoveredPoints).map(
+          ([sceneId, points]) => [sceneId, Array.from(points)]
+        )
       )
-    )
+    }
   }
+
 });
 
 const hydrateState = (data: CaseState): Partial<CaseState> => ({
   casesProgress: data.casesProgress ?? {},
   activeCaseId: data.activeCaseId ?? null,
-  investigation: {
-    evidence: new Set(data.investigation?.evidence ?? []),
-    readMessages: new Set(data.investigation.readMessages ?? []),
-    seenDialogues: new Set(data.investigation.seenDialogues ?? []),
-    solvedPuzzles: new Set(data.investigation.solvedPuzzles ?? []),
-    discoveredPoints: Object.fromEntries(
-      Object.entries(data.investigation.discoveredPoints).map(
-        ([sceneId, points]) => [sceneId, new Set(points ?? [])]
+  runtime: {
+    board: data.runtime.board ?? {activeHypothesisId: null, hypotheses: {}},
+    investigation: {
+      evidence: new Set(data.runtime.investigation?.evidence ?? []),
+      readMessages: new Set(data.runtime.investigation.readMessages ?? []),
+      seenDialogues: new Set(data.runtime.investigation.seenDialogues ?? []),
+      solvedPuzzles: new Set(data.runtime.investigation.solvedPuzzles ?? []),
+      discoveredPoints: Object.fromEntries(
+        Object.entries(data.runtime.investigation.discoveredPoints).map(
+          ([sceneId, points]) => [sceneId, new Set(points ?? [])]
+        )
       )
-    )
+    }
   },
   deductionState: data.deductionState ?? {
     attemptsLeft: 3
   },
   log: data.log ?? [],
-  board: data.board ?? {activeHypothesisId: null, hypotheses: {}},
   tutorial: data.tutorial ?? {
     enabled: true,
     step: 0
   },
-  logFlags: data.logFlags ?? {},
+  flags: data.flags ?? {},
   caseHub: data.caseHub ?? {},
   hintsUsed: data.hintsUsed ?? 0,
   timeLeft: data.timeLeft ?? 0,
@@ -167,12 +169,18 @@ const initialState: Partial<CaseState> = {
 
   systemMessage: '',
 
-  investigation: {
-    discoveredPoints: {},
-    evidence: new Set<string>(),
-    readMessages: new Set<string>(),
-    seenDialogues: new Set<string>(),
-    solvedPuzzles: new Set<string>()
+  runtime: {
+    investigation: {
+      discoveredPoints: {},
+      evidence: new Set<string>(),
+      readMessages: new Set<string>(),
+      seenDialogues: new Set<string>(),
+      solvedPuzzles: new Set<string>()
+    },
+    board: {
+      hypotheses: {},
+      activeHypothesisId: ''
+    }
   },
 
   deductionState: {
@@ -181,10 +189,7 @@ const initialState: Partial<CaseState> = {
   log: [],
   casesProgress: {},
   activeCaseId: null,
-  board: {
-    hypotheses: {},
-    activeHypothesisId: null
-  },
+
   timeLeft: 0,
   timerStatus: 'stopped',
   hintsUsed: 0,
@@ -195,7 +200,7 @@ const initialState: Partial<CaseState> = {
   hasUnreadLogEntries: false,
   caseHub: {} as CaseHubType,
 
-  logFlags: {},
+  flags: {}
 };
 
 export const useCaseStore = create<CaseState>((set, get) => ({
@@ -214,7 +219,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     })),
 
   markMessageRead: (messageId) => set(state => {
-    const existing = state.investigation.readMessages ?? new Set<string>();
+    const existing = state.runtime.investigation.readMessages ?? new Set<string>();
 
     if (existing.has(messageId)) return state;
 
@@ -222,14 +227,17 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     newSet.add(messageId);
 
     return {
-      investigation: {
-        ...state.investigation,
-        readMessages: newSet
+      runtime: {
+        ...state.runtime,
+        investigation: {
+          ...state.runtime.investigation,
+          readMessages: newSet
+        }
       }
     };
   }),
   markDialogueSeen: (dialogueId) => set(state => {
-    const existing = state.investigation.seenDialogues ?? new Set<string>();
+    const existing = state.runtime.investigation.seenDialogues ?? new Set<string>();
 
     if (existing.has(dialogueId)) return state;
 
@@ -237,14 +245,17 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     newSet.add(dialogueId);
 
     return {
-      investigation: {
-        ...state.investigation,
-        seenDialogues: newSet
+      runtime: {
+        ...state.runtime,
+        investigation: {
+          ...state.runtime.investigation,
+          seenDialogues: newSet
+        }
       }
     };
   }),
   markPuzzleSolved: (puzzleId) => set(state => {
-    const existing = state.investigation.solvedPuzzles ?? new Set<string>();
+    const existing = state.runtime.investigation.solvedPuzzles ?? new Set<string>();
 
     if (existing.has(puzzleId)) return state;
 
@@ -252,14 +263,17 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     newSet.add(puzzleId);
 
     return {
-      investigation: {
-        ...state.investigation,
-        solvedPuzzles: newSet
+      runtime: {
+        ...state.runtime,
+        investigation: {
+          ...state.runtime.investigation,
+          solvedPuzzles: newSet
+        }
       }
     };
   }),
   markScenePoint: (sceneId, pointId) => set(state => {
-    const existing = state.investigation.discoveredPoints[sceneId] ?? new Set<string>();
+    const existing = state.runtime.investigation.discoveredPoints[sceneId] ?? new Set<string>();
 
     if (existing.has(pointId)) return state;
 
@@ -267,23 +281,26 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     newSet.add(pointId);
 
     return {
-      investigation: {
-        ...state.investigation,
-        discoveredPoints: {
-          ...state.investigation.discoveredPoints,
-          [sceneId]: newSet
+      runtime: {
+        ...state.runtime,
+        investigation: {
+          ...state.runtime.investigation,
+          discoveredPoints: {
+            ...state.runtime.investigation.discoveredPoints,
+            [sceneId]: newSet
+          }
         }
       }
     };
   }),
   markEvidenceUnlock: (evidenceId: string) => set(state => {
-    if (state.investigation.evidence.has(evidenceId)) return state;
+    if (state.runtime.investigation.evidence.has(evidenceId)) return state;
 
     const evidence = state.case?.evidence?.[evidenceId];
 
     if (!evidence) return state;
 
-    const newSet = new Set(state.investigation?.evidence ?? []);
+    const newSet = new Set(state.runtime.investigation?.evidence ?? []);
     newSet.add(evidenceId);
 
     state.addLog(
@@ -293,48 +310,47 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     );
 
     return {
-      investigation: {
-        ...state.investigation,
-        evidence: newSet
+      runtime: {
+        ...state.runtime,
+        investigation: {
+          ...state.runtime.investigation,
+          evidence: newSet
+        }
       }
     };
   }),
 
-  hasLogFlag: (key) => Boolean(get().logFlags[key]),
-  setLogFlag: (key) =>
-    set(state => ({
-      logFlags: {...state.logFlags, [key]: true}
-    })),
+  hasFlag: (key) => Boolean(get().flags[key]),
+  setFlag: (key) => set(state => ({
+    flags: {...state.flags, [key]: true}
+  })),
   markLogAsRead: () => {
     set({hasUnreadLogEntries: false});
   },
 
-  advanceTutorial: (step: TutorialStep) =>
-    set(state => ({
-      tutorial: {
-        ...state.tutorial,
-        step
-      }
-    })),
-  finishTutorial: () =>
-    set({
-      tutorial: {
-        enabled: false,
-        step: 5
-      }
-    }),
+  advanceTutorial: (step: TutorialStep) => set(state => ({
+    tutorial: {
+      ...state.tutorial,
+      step
+    }
+  })),
+  finishTutorial: () => set({
+    tutorial: {
+      enabled: false,
+      step: 5
+    }
+  }),
 
-  spendTime: (amount: number) =>
-    set(state => {
-      if (state.timerStatus !== 'running') return state;
+  spendTime: (amount: number) => set(state => {
+    if (state.timerStatus !== 'running') return state;
 
-      const newTime = Math.max(0, state.timeLeft - amount);
+    const newTime = Math.max(0, state.timeLeft - amount);
 
-      return {
-        timeLeft: newTime,
-        timerStatus: newTime === 0 ? 'stopped' : state.timerStatus
-      };
-    }),
+    return {
+      timeLeft: newTime,
+      timerStatus: newTime === 0 ? 'stopped' : state.timerStatus
+    };
+  }),
   startTimer: () => {
     if (get().timerStatus === 'running') return;
 
@@ -354,12 +370,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
         set({
           timeLeft: 0,
           timerStatus: 'stopped',
-          lastOutcome: {
-            resultType: 'failed',
-            ratingScore: 0,
-            ratingGrade: 'F',
-            linkScore: 0
-          }
+          lastOutcome: null,
         });
 
         state.addLog(
@@ -414,27 +425,44 @@ export const useCaseStore = create<CaseState>((set, get) => ({
 
     if (!caseData) return;
 
+    const boardLayout = caseData.boardLayout;
+    const deductions = caseData.deductions;
+    const hypotheses = deductions.reduce<Record<string, HypothesisBoard>>((acc, deduction) => {
+      if (!acc[deduction.id]) {
+        acc[deduction.id] = {sections: {}};
+      }
+
+      acc[deduction.id].sections = boardLayout.reduce<Record<string, string[]>>((a, section) => {
+        a[section.id] = [];
+
+        return a;
+      }, {});
+
+      return acc;
+    }, {});
+
     set({
       case: caseData,
       activeCaseId: caseId,
 
       caseHub: caseData.caseHub,
 
-      investigation: {
-        discoveredPoints: {},
-        evidence: new Set<string>(),
-        readMessages: new Set<string>(),
-        seenDialogues: new Set<string>(),
-        solvedPuzzles: new Set<string>()
+      runtime: {
+        investigation: {
+          discoveredPoints: {},
+          evidence: new Set<string>(),
+          readMessages: new Set<string>(),
+          seenDialogues: new Set<string>(),
+          solvedPuzzles: new Set<string>()
+        },
+        board: {
+          hypotheses,
+          activeHypothesisId: caseData.deductions[0].id,
+        }
       },
 
       deductionState: {
         attemptsLeft: caseData.attempts || 1
-      },
-
-      board: {
-        hypotheses: {},
-        activeHypothesisId: null
       },
 
       timeLeft: caseData.timeLimit,
@@ -474,8 +502,8 @@ export const useCaseStore = create<CaseState>((set, get) => ({
     const outcome = resolveCaseOutcome(
       state.case,
       {
-        investigation: state.investigation,
-        board: state.board,
+        investigation: state.runtime.investigation,
+        board: state.runtime.board,
         attemptsLeft: state.deductionState.attemptsLeft
       },
       deductionId
@@ -513,47 +541,63 @@ export const useCaseStore = create<CaseState>((set, get) => ({
 
   // BOARD
   setActiveHypothesis: (id: string) => set(state => ({
-    board: {
-      ...state.board || {},
-      activeHypothesisId: id
+    runtime: {
+      ...state.runtime,
+      board: {
+        ...state.runtime.board,
+        activeHypothesisId: id
+      }
     }
   })),
-  toggleEvidenceForActiveHypothesis(evidenceId: string) {
+  toggleEvidenceOnSection(sectionId: string, evidenceId: string) {
     set(state => {
-      const {activeHypothesisId, hypotheses} = state.board;
+      const {activeHypothesisId, hypotheses} = state.runtime.board;
 
       if (!activeHypothesisId) {
         return state;
       }
 
-      const evidences = hypotheses[activeHypothesisId] || [];
-      const isExist = evidences?.includes(evidenceId);
+      const section = hypotheses[activeHypothesisId]?.sections?.[sectionId] || [];
+
+      const isExist = section?.includes(evidenceId);
       const updatedEvidences = isExist ?
-        evidences.filter(e => e !== evidenceId) :
-        [...evidences, evidenceId];
+        section.filter(e => e !== evidenceId) :
+        [...section, evidenceId];
 
       return {
-        board: {
-          ...state.board,
-          hypotheses: {
-            ...state.board.hypotheses,
-            [activeHypothesisId]: updatedEvidences
+        runtime: {
+          ...state.runtime,
+          board: {
+            ...state.runtime.board,
+            hypotheses: {
+              ...state.runtime.board.hypotheses,
+              [activeHypothesisId]: {
+                sections: {
+                  ...state.runtime.board.hypotheses[activeHypothesisId]?.sections || {},
+                  [sectionId]: updatedEvidences
+                }
+              }
+            }
           }
         }
       };
     });
   },
   isBoardValidFor(id: string) {
-    const {board, case: caseData} = get();
+    const {runtime, case: caseData} = get();
+    const layout = caseData?.boardLayout;
 
-    const deduction = caseData?.deductions.find(d => d.id === id);
-    if (!deduction) return false;
+    if (!layout) return false;
 
-    const hypothesisEvidence = board.hypotheses[id] || [];
+    const hypothesis = runtime.board.hypotheses[id];
 
-    return deduction.requiredEvidence?.every(e =>
-      hypothesisEvidence.includes(e)
-    ) ?? true;
+    return layout.every(section => {
+      const placed = hypothesis.sections[section.id] || [];
+
+      return section.requiredEvidence.every(e =>
+        placed.includes(e)
+      );
+    });
   }
 }));
 

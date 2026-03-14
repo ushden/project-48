@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import {Animated, StyleSheet} from 'react-native';
+import {Animated, Pressable, StyleSheet} from 'react-native';
 
 import {useCaseStore} from '../store/caseStore';
 import {StyledText} from './StyledText';
@@ -19,7 +19,7 @@ export const SystemMessage = () => {
 
       setTimeout(() => {
         setSystemMessage('');
-      }, 5000);
+      }, 6000);
     }
   }, [systemMessage]);
 
@@ -30,7 +30,9 @@ export const SystemMessage = () => {
       styles.messageContainer,
       {opacity: fadeAnim}
     ]}>
-      <StyledText style={styles.textContent}>{systemMessage}</StyledText>
+      <Pressable onPress={() => setSystemMessage('')}>
+        <StyledText style={styles.textContent}>{systemMessage}</StyledText>
+      </Pressable>
     </Animated.View>
   );
 };
@@ -39,7 +41,7 @@ const styles = StyleSheet.create({
   messageContainer: {
     position: 'absolute',
     zIndex: 1000,
-    top: 70,
+    top: 80,
     left: 10,
     right: 10,
     alignItems: 'center',

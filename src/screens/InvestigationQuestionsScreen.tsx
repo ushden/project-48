@@ -1,9 +1,9 @@
 import React, {useEffect} from 'react';
-import {ScrollView, View, StyleSheet, Pressable} from 'react-native';
+import {Image, Pressable, ScrollView, StyleSheet, View} from 'react-native';
 import Animated, {useAnimatedStyle, useSharedValue, withDelay, withTiming} from 'react-native-reanimated';
 import {useCaseStore} from '../store/caseStore';
 import {StyledText} from '../components/StyledText';
-import {Question} from '../types/case';
+import {Condition, EvidenceData, Question} from '../types/case';
 import {checkConditions} from '../engine/conditions';
 import {RouteProp} from '@react-navigation/native';
 import {RootStackParamList} from '../types/navigation';
@@ -24,10 +24,32 @@ interface Props {
   navigation: GameScreenNavigationProp;
 }
 
+const getQuestionHintByType = (condition: Condition, evidences: Record<string, EvidenceData>): string => {
+  switch (condition.type) {
+    case 'dialogueSeen':
+      return 'Допит свідка';
+    case 'evidenceFound':
+      const evidence = evidences[condition.id || ''];
+
+      if (!evidence) {
+        return '';
+      }
+
+      return `Доказ: ${evidence.title}`;
+    case 'messageRead':
+      return 'Повідомлення в телефоні';
+    case 'notesRead':
+      return 'Замітка в телефоні';
+    default:
+      return '';
+  }
+};
+
 export default function InvestigationQuestionsScreen({route, navigation}: Props) {
   const isIntro = route?.params?.isIntro;
-  const questionsData = useCaseStore(s => s.case?.investigation?.questions || []);
-  const investigationState = useCaseStore(s => s.investigation);
+  const questionsData = useCaseStore(s => s.case?.questions || []);
+  const investigationState = useCaseStore(s => s.runtime.investigation);
+  const evidences = useCaseStore(s => s.case?.evidence || {});
 
   const {questions, resolvedCount} = questionsData.reduce<QuestionData>((acc, q) => {
     const isResolved = checkConditions(q.resolveConditions, investigationState);
@@ -36,7 +58,7 @@ export default function InvestigationQuestionsScreen({route, navigation}: Props)
       acc.resolvedCount += 1;
 
       q.resolved = true;
-      q.questionHint = q.resolveConditions.map(i => i.hint || '').filter(Boolean).join(', ');
+      q.questionHint = q.resolveConditions.map((c) => getQuestionHintByType(c, evidences)).filter(Boolean).join(', ');
     } else {
       q.resolved = false;
     }
@@ -47,40 +69,48 @@ export default function InvestigationQuestionsScreen({route, navigation}: Props)
   }, {resolvedCount: 0, questions: []});
 
   return (
-    <View style={styles.container}>
-      <StyledText style={styles.title}>Питання справи</StyledText>
+    <View style={{flex: 1, width: '100%'}}>
+      <Image
+        style={styles.bgImage}
+        source={require('../../assets/note_bg.webp')}
+        resizeMode="cover"
+      />
+      <View style={styles.container}>
 
-      <ScrollView contentContainerStyle={styles.list}>
-        {questions.map((q, index) => (
-          <QuestionItem
-            key={q.id}
-            question={q}
-            index={index}
-          />
-        ))}
-      </ScrollView>
+        <StyledText style={styles.title}>Питання справи:</StyledText>
 
-      <View style={styles.progressBox}>
-        {!isIntro && (
-          <Pressable
-            // style={styles.back}
-            onPress={() => navigation.goBack()}
-          >
-            <StyledText style={styles.backText}>← Назад</StyledText>
+        <ScrollView contentContainerStyle={styles.list}>
+          {questions.map((q, index) => (
+            <QuestionItem
+              key={q.id}
+              question={q}
+              index={index}
+            />
+          ))}
+        </ScrollView>
+
+        <View style={styles.progressBox}>
+          {!isIntro && (
+            <Pressable
+              // style={styles.back}
+              onPress={() => navigation.goBack()}
+            >
+              <StyledText style={styles.backText}>← Назад</StyledText>
+            </Pressable>
+          )}
+          <StyledText style={styles.progressText}>
+            Прогрес: {resolvedCount} / {questions.length}
+          </StyledText>
+        </View>
+
+        {isIntro && (
+          <Pressable style={styles.introButton} onPress={() => {
+            navigation.replace('CaseHub');
+          }}>
+            <StyledText style={styles.introText}>Почати справу</StyledText>
           </Pressable>
         )}
-        <StyledText style={styles.progressText}>
-          Прогрес: {resolvedCount} / {questions.length}
-        </StyledText>
       </View>
-
-      {isIntro && (
-        <Pressable style={styles.introButton} onPress={() => {
-          navigation.replace('CaseHub');
-        }}>
-          <StyledText style={styles.introText}>Почати справу</StyledText>
-        </Pressable>
-      )}
     </View>
   );
 }
@@ -118,8 +148,6 @@ function QuestionItem({question, index}: {question: Question; index: number}) {
             {question.questionHint}
           </StyledText>
         )}
-
-        <View style={styles.notebookLine} />
       </View>
     </AnimatedView>
   );
@@ -128,16 +156,21 @@ function QuestionItem({question, index}: {question: Question; index: number}) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F1E8',
     paddingHorizontal: 20,
-    paddingVertical: 50
+    paddingVertical: 40
+  },
+  bgImage: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    top: 0,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '600',
-    marginBottom: 20,
+    fontFamily: 'SweetMavka',
+    fontSize: 30,
     letterSpacing: 1,
-    color: '#000',
+    color: '#002b59',
+    marginBottom: 30,
   },
   list: {
     paddingBottom: 40
@@ -148,10 +181,10 @@ const styles = StyleSheet.create({
     marginBottom: 18
   },
   checkbox: {
-    fontSize: 20,
+    fontSize: 25,
     marginRight: 12,
-    width: 24,
-    color: '#000',
+    width: 28,
+    color: '#002b59'
   },
   checkboxResolved: {
     color: '#2c6e49'
@@ -160,19 +193,15 @@ const styles = StyleSheet.create({
     flex: 1
   },
   questionText: {
-    fontSize: 16,
-    lineHeight: 22,
-    color: '#000',
+    fontFamily: 'SweetMavka',
+    // paddingVertical: 8,
+    fontSize: 20,
+    lineHeight: 35,
+    color: '#002b59'
   },
   resolvedText: {
     textDecorationLine: 'line-through',
     opacity: 0.6
-  },
-  notebookLine: {
-    height: 1,
-    backgroundColor: '#7fa1c3',
-    marginTop: 6,
-    opacity: 0.5
   },
   back: {
     position: 'absolute',
@@ -180,29 +209,26 @@ const styles = StyleSheet.create({
     left: 16
   },
   backText: {
-    color: '#000'
+    color: '#002b59'
   },
   progressBox: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: '#d6d0c4',
     paddingTop: 12
   },
   progressText: {
     fontSize: 14,
     opacity: 0.7,
-    color: '#000',
+    color: '#002b59',
     textAlign: 'right'
   },
   evidenceNote: {
     fontSize: 13,
     marginTop: 4,
     opacity: 0.7,
-    fontStyle: "italic",
-    color: '#000',
+    color: '#002b59'
   },
   introButton: {
     width: '100%',
@@ -210,10 +236,10 @@ const styles = StyleSheet.create({
     marginTop: 20,
     borderRadius: 40,
     borderWidth: 1,
-    borderColor: '#000',
+    borderColor: '#000'
   },
   introText: {
-    color: '#000',
-    textAlign: 'center',
-  },
+    color: '#002b59',
+    textAlign: 'center'
+  }
 });
