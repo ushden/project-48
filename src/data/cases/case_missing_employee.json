@@ -112,6 +112,12 @@
       "description": "Вікно прочинене, але слідів злому немає. Це виглядає скоріше як деталь інсценування.",
       "source": "scene",
       "category": "environment"
+    },
+    "empty_wallet": {
+      "id": "empty_wallet",
+      "title": "Порожній гаманець",
+      "description": "У гаманці немає готівки.",
+      "source": "scene"
     }
   },
   "caseHub": {
@@ -193,6 +199,15 @@
           "action": {
             "type": "evidence",
             "evidenceId": "open_window"
+          }
+        },
+        {
+          "id": "wallet",
+          "x": 0.25,
+          "y": 0.58,
+          "action": {
+            "type": "evidence",
+            "evidenceId": "empty_wallet"
           }
         },
         {
@@ -329,23 +344,6 @@
       }
     ]
   },
-  "boardLayout": [
-    {
-      "id": "motive",
-      "title": "Мотив",
-      "requiredEvidence": ["work_report_draft"]
-    },
-    {
-      "id": "preparation",
-      "title": "Підготовка",
-      "requiredEvidence": ["backpack_ready", "calendar_mark"]
-    },
-    {
-      "id": "plan",
-      "title": "План",
-      "requiredEvidence": ["shredded_note", "exit_plan_message"]
-    }
-  ],
   "deductions": [
     {
       "id": "crime_version",
@@ -355,6 +353,16 @@
         "open_window"
       ],
       "result": "fail",
+      "layout": [
+        {
+          "id": "evidence",
+          "title": "Докази",
+          "requiredEvidence": [
+            "shredded_note",
+            "open_window"
+          ]
+        }
+      ],
       "log": {
         "type": "deduction",
         "importance": "hint",
@@ -367,6 +375,15 @@
       "requiredEvidence": [
         "work_report_draft"
       ],
+      "layout": [
+        {
+          "id": "evidence",
+          "title": "Обставини",
+          "requiredEvidence": [
+            "work_report_draft"
+          ]
+        }
+      ],
       "result": "partial"
     },
     {
@@ -376,7 +393,25 @@
         "work_report_draft",
         "shredded_note",
         "exit_plan_message",
+        "calendar_mark",
         "backpack_ready"
+      ],
+      "layout": [
+        {
+          "id": "motive",
+          "title": "Мотив",
+          "requiredEvidence": ["work_report_draft"]
+        },
+        {
+          "id": "preparation",
+          "title": "Підготовка",
+          "requiredEvidence": ["backpack_ready", "calendar_mark"]
+        },
+        {
+          "id": "plan",
+          "title": "План",
+          "requiredEvidence": ["shredded_note", "exit_plan_message"]
+        }
       ],
       "result": "success"
     }

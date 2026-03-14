@@ -1,5 +1,5 @@
 import {BoardState, CaseRuntimeState} from '../../types/investigation';
-import {BoardLayout} from '../../types/case';
+import {BoardLayout, CaseData, Deduction} from '../../types/case';
 
 export function getEvidenceOnBoard(board: BoardState, hypothesisId: string) {
   const hypothesis = board.hypotheses[hypothesisId];
@@ -46,8 +46,8 @@ export function getHypothesisProgress(boardLayout: BoardLayout[], runtime: CaseR
   };
 }
 
-export function getSectionSlots(boardLayout: BoardLayout[], sectionId: string) {
-  const section = boardLayout.find(s => s.id === sectionId);
+export function getSectionsForHypothesis(deductions: Deduction[], hypothesisId: string) {
+  const deduction = deductions?.find(s => s.id === hypothesisId);
 
-  return section?.requiredEvidence?.length ?? 0;
+  return deduction?.layout || [];
 }

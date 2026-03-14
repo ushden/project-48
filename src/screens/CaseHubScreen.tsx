@@ -1,20 +1,26 @@
 import React from 'react';
+import {StatusBar} from 'expo-status-bar';
 import {Dimensions, Image, Pressable, StyleSheet} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 
 import {useCaseStore} from '../store/caseStore';
-import {FloatingJournalButton} from '../components/FloatingJournalButton';
 import {CaseHubProgressStatus} from '../types/case';
 import {StyledText} from '../components/StyledText';
-import {StatusBar} from 'expo-status-bar';
-import {SafeAreaView} from 'react-native-safe-area-context';
 
 const {width, height} = Dimensions.get('window');
 
 export default function CaseHubScreen() {
   const navigation = useNavigation<any>();
 
-  const {caseHub, updateCaseHubObjectStatus, activeCaseId, hasUnreadLogEntries} = useCaseStore();
+  const {
+    caseHub,
+    case: caseData,
+    updateCaseHubObjectStatus,
+    activeCaseId,
+    hasUnreadLogEntries,
+    setActiveHypothesis
+  } = useCaseStore();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -46,16 +52,20 @@ export default function CaseHubScreen() {
         title="Дошка доказів"
         style={styles.board}
         onPress={() => {
-          if (caseHub.case !== 'visited') {
+          if (!caseData) return;
+
+          if (caseHub.board !== 'visited') {
             updateCaseHubObjectStatus('board', 'visited');
           }
+
+          setActiveHypothesis(caseData.deductions[0].id);
 
           navigation.navigate('MindBoard');
         }}
         state={caseHub.board}
       />
 
-       {/* Journal */}
+      {/* Journal */}
       <CaseHubObject
         image={require('../../assets/casehub/case_file.png')}
         title="Журнал"
@@ -68,7 +78,7 @@ export default function CaseHubScreen() {
           navigation.navigate('Log');
         }}
         state={caseHub.journal}
-        tooltip={hasUnreadLogEntries && 'Новий допис'}
+        tooltip={hasUnreadLogEntries ? 'Новий допис' : ''}
       />
 
       {/* Questions */}
@@ -77,7 +87,7 @@ export default function CaseHubScreen() {
         title="Записник"
         style={styles.questions}
         onPress={() => {
-          if (caseHub.case !== 'visited') {
+          if (caseHub.notepad !== 'visited') {
             updateCaseHubObjectStatus('notepad', 'visited');
           }
 
@@ -214,7 +224,7 @@ const styles = StyleSheet.create({
     color: '#cfcfcf',
     paddingHorizontal: 4,
     borderRadius: 4,
-    backgroundColor: 'rgba(0,60,255,0.4)',
+    backgroundColor: 'rgba(0,60,255,0.4)'
   },
   /* Positions */
   board: {

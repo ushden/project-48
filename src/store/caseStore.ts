@@ -425,14 +425,13 @@ export const useCaseStore = create<CaseState>((set, get) => ({
 
     if (!caseData) return;
 
-    const boardLayout = caseData.boardLayout;
     const deductions = caseData.deductions;
     const hypotheses = deductions.reduce<Record<string, HypothesisBoard>>((acc, deduction) => {
       if (!acc[deduction.id]) {
         acc[deduction.id] = {sections: {}};
       }
 
-      acc[deduction.id].sections = boardLayout.reduce<Record<string, string[]>>((a, section) => {
+      acc[deduction.id].sections = deduction.layout.reduce<Record<string, string[]>>((a, section) => {
         a[section.id] = [];
 
         return a;
@@ -585,13 +584,13 @@ export const useCaseStore = create<CaseState>((set, get) => ({
   },
   isBoardValidFor(id: string) {
     const {runtime, case: caseData} = get();
-    const layout = caseData?.boardLayout;
+    const deduction = caseData?.deductions?.find(d => d.id === id);
 
-    if (!layout) return false;
+    if (!deduction) return false;
 
     const hypothesis = runtime.board.hypotheses[id];
 
-    return layout.every(section => {
+    return deduction.layout.every(section => {
       const placed = hypothesis.sections[section.id] || [];
 
       return section.requiredEvidence.every(e =>

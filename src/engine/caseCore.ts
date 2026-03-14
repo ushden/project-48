@@ -83,12 +83,13 @@ export function resolveCaseOutcome(
   snapshot: PlayerSnapshot,
   deductionId: string
 ): CaseOutcome {
+  const deduction = caseData?.deductions?.find(d => d.id === deductionId);
   const resultType = resolveDeductionResult(
     caseData,
     snapshot,
     deductionId
   );
-  const linkScore = calculateLinkScore(caseData.boardLayout, snapshot.board, deductionId);
+  const linkScore = calculateLinkScore(deduction?.layout || [], snapshot.board, deductionId);
   const {score, grade} = calculateRating(
     resultType,
     snapshot.attemptsLeft,

@@ -9,7 +9,12 @@ import {SystemMessage} from '../components/SystemMessage';
 import {RootStackParamList} from '../types/navigation';
 import {StackNavigationProp} from '@react-navigation/stack';
 import EvidencePickerSheet from '../components/EvidencePickerSheet';
-import {getAvailableEvidence, getEvidenceBySection, getHypothesisProgress} from '../store/selectors/boardSelectors';
+import {
+  getAvailableEvidence,
+  getEvidenceBySection,
+  getHypothesisProgress,
+  getSectionsForHypothesis
+} from '../store/selectors/boardSelectors';
 
 type GameScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MindBoard'>;
 
@@ -29,8 +34,9 @@ export default function MindBoardScreen({navigation}: Props) {
 
   const board = runtime.board;
   const hypothesisId = board.activeHypothesisId;
+  const deductions = caseData?.deductions || [];
 
-  const sections = useMemo(() => caseData?.boardLayout || [], [caseData]);
+  const sections = useMemo(() => getSectionsForHypothesis(deductions, hypothesisId), [deductions, hypothesisId]);
   const sectionEvidence = useMemo(() => getEvidenceBySection(runtime, hypothesisId), [runtime, hypothesisId]);
   const availableEvidence = useMemo(() => getAvailableEvidence(runtime, hypothesisId), [runtime, hypothesisId]);
 

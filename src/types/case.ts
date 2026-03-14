@@ -18,6 +18,7 @@ export type Deduction = {
   text: string;
   requiredEvidence?: string[];
   requiredScenePoints?: string[];
+  layout: BoardLayout[];
   result: DeductionResult;
   log?: {
     type: LogType;
@@ -195,7 +196,6 @@ export type CaseData = {
   scenes: Scene[];
   witnesses: Witness[];
   victimPhone: VictimPhone;
-  boardLayout: BoardLayout[];
   deductions: Deduction[];
   endings: CaseEnding[];
   caseHub: CaseHubType;
