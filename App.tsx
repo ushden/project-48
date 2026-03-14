@@ -1,4 +1,5 @@
 import {FunctionComponent, useEffect} from 'react';
+import * as NavigationBar from 'expo-navigation-bar'
 import {useFonts} from 'expo-font';
 import {StatusBar} from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -44,6 +45,13 @@ export default function App() {
     LibreFranklinRegular: require('./assets/fonts/LibreFranklin-Regular.ttf'),
     SweetMavka: require('./assets/fonts/Sweet-Mavka-Script.ttf'),
   });
+
+  useEffect(() => {
+    (async () => {
+      await NavigationBar.setBackgroundColorAsync('#000000')
+      await NavigationBar.setButtonStyleAsync('light')
+    })();
+  }, []);
 
   useEffect(() => {
     loadGame();

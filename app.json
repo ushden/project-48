@@ -7,6 +7,9 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "androidNavigationBar": {
+      "backgroundColor": "#000000"
+    },
     "jsEngine": "hermes",
     "splash": {
       "image": "./assets/splash.png",
