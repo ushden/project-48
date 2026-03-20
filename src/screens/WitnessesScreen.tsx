@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import {FlatList, Image, Pressable, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {RouteProp} from '@react-navigation/native';
@@ -24,6 +25,18 @@ export default function WitnessesScreen({navigation, route}: Props) {
   const witnesses: Witness[] = caseData.witnesses;
 
   const {seenDialogues} = useCaseStore(s => s.runtime.investigation);
+
+  useEffect(() => {
+    const removeListener = navigation.addListener('beforeRemove', e => {
+      const type = (e.data.action.type || '').toLowerCase();
+
+      console.log(type);
+    });
+
+    return () => {
+      removeListener();
+    };
+  }, [navigation]);
 
   function openDialogue(witnessId: string) {
     const witness = witnesses.find(w => w.id === witnessId);

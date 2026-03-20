@@ -76,7 +76,7 @@ type CaseState = {
   saveGame: () => Promise<void>;
 
   // MARKS
-  markEvidenceUnlock: (id: string) => void
+  markEvidenceUnlock: (id: string, showMessage?: boolean) => void
   markScenePoint: (sceneId: string, pointId: string) => void;
   markMessageRead: (messageId: string) => void;
   markDialogueSeen: (dialogueId: string) => void;
@@ -293,7 +293,7 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       }
     };
   }),
-  markEvidenceUnlock: (evidenceId: string) => set(state => {
+  markEvidenceUnlock: (evidenceId: string, showMessage = false) => set(state => {
     if (state.runtime.investigation.evidence.has(evidenceId)) return state;
 
     const evidence = state.case?.evidence?.[evidenceId];
@@ -308,6 +308,10 @@ export const useCaseStore = create<CaseState>((set, get) => ({
       `${evidence.title}: ${evidence.description}`,
       'normal'
     );
+
+    if (showMessage) {
+      state.setSystemMessage(`${evidence.title}: ${evidence.description}`);
+    }
 
     return {
       runtime: {

@@ -1,8 +1,8 @@
 import {useEffect, useRef} from 'react';
-import {Animated, Pressable, StyleSheet} from 'react-native';
+import {Animated, GestureResponderEvent, Pressable, StyleSheet} from 'react-native';
 
 type Props = {
-  onPress: () => void;
+  onPress: (event: GestureResponderEvent) => void;
   isDiscovered: boolean;
   left: number;
   top: number;
@@ -28,7 +28,7 @@ export function ScenePoint({onPress, isDiscovered, top, left}: Props) {
     ]).start();
   }, []);
 
-  function handlePress() {
+  function handlePress(event: GestureResponderEvent) {
     Animated.sequence([
       Animated.timing(pulse, {
         toValue: 1.15,
@@ -42,12 +42,12 @@ export function ScenePoint({onPress, isDiscovered, top, left}: Props) {
       })
     ]).start();
 
-    onPress();
+    onPress(event);
   }
 
   return (
     <Pressable
-      onPress={handlePress}
+      onPress={(event) => handlePress(event)}
       style={[
         styles.pointContainer,
         {

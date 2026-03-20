@@ -1,5 +1,6 @@
 import {FunctionComponent, useEffect} from 'react';
-import * as NavigationBar from 'expo-navigation-bar'
+import * as NavigationBar from 'expo-navigation-bar';
+import * as ScreenOrientation from "expo-screen-orientation";
 import {useFonts} from 'expo-font';
 import {StatusBar} from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -48,8 +49,12 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      await NavigationBar.setBackgroundColorAsync('#000000')
-      await NavigationBar.setButtonStyleAsync('light')
+      await NavigationBar.setBackgroundColorAsync('#000000');
+      await NavigationBar.setButtonStyleAsync('light');
+
+      await ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.PORTRAIT
+      );
     })();
   }, []);
 

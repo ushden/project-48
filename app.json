@@ -45,7 +45,16 @@
           "imageWidth": 500
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResources": true
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {

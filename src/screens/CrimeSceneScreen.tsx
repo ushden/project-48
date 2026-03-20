@@ -1,5 +1,5 @@
-import {useEffect} from 'react';
-import {Dimensions, Image, Pressable, StyleSheet, View} from 'react-native';
+import {useEffect, useRef} from 'react';
+import {Dimensions, GestureResponderEvent, Image, Pressable, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {RouteProp} from '@react-navigation/native';
 
@@ -13,8 +13,12 @@ import {FloatingJournalButton} from '../components/FloatingJournalButton';
 import {ScenePoint} from '../types/case';
 import {SystemMessage} from '../components/SystemMessage';
 import {checkConditions} from '../engine/conditions';
+import FlyingComet, {FlyingCometRef} from '../components/FlyingComet';
+import {getSceneProgress} from '../store/selectors/sceneSelectors';
 
 const {width, height} = Dimensions.get('window');
+const TARGET_X = width - 100;
+const TARGET_Y = height - 120;
 
 type GameScreenRouteProp = RouteProp<RootStackParamList, 'CrimeScene'>;
 type GameScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CrimeScene'>;
@@ -26,6 +30,8 @@ interface Props {
 
 export default function CrimeSceneScreen({navigation, route}: Props) {
   const {caseId, crimeSceneId} = route.params;
+
+  const cometRef = useRef<FlyingCometRef>(null);
 
   const caseMeta = casesMeta.find(c => c.id === caseId);
   const sceneMeta = caseMeta?.scenes?.find(c => c.id === crimeSceneId);
@@ -60,9 +66,12 @@ export default function CrimeSceneScreen({navigation, route}: Props) {
   }
 
   const discovered = investigation.discoveredPoints[scene.id] ?? new Set<string>();
+  const {total, left} = getSceneProgress(scene.points, discovered);
 
-  function handlePointPress(point: ScenePoint) {
+  function handlePointPress(point: ScenePoint, event: GestureResponderEvent) {
     if (discovered.has(point.id) || !scene) return;
+
+    const {locationX, locationY} = event?.nativeEvent || {};
 
     markScenePoint(scene.id, point.id);
 
@@ -70,7 +79,6 @@ export default function CrimeSceneScreen({navigation, route}: Props) {
       case 'evidence': {
         markEvidenceUnlock(point.action.evidenceId);
 
-        setSystemMessage('Цей об\'єкт може мати значення. Потрібно перевірити свої записи');
         break;
       }
       case 'inspect': {
@@ -82,12 +90,23 @@ export default function CrimeSceneScreen({navigation, route}: Props) {
         break;
       }
     }
+
+    if (cometRef.current) {
+      cometRef.current.start(locationX, locationY);
+    }
   }
 
   return (
     <SafeAreaView style={styles.safe}>
       <SystemMessage />
+      <FlyingComet
+        ref={cometRef}
+        targetX={TARGET_X}
+        targetY={TARGET_Y}
+        onArrival={() => console.log('Target hit!')}
+      />
       <View style={styles.container}>
+        <StyledText>Прогрес: {left}/{total}</StyledText>
         <Image
           source={sceneMeta.portrait.source}
           style={styles.image}
@@ -107,7 +126,7 @@ export default function CrimeSceneScreen({navigation, route}: Props) {
               top={top}
               key={point.id}
               isDiscovered={isFound}
-              onPress={() => handlePointPress(point)}
+              onPress={(event) => handlePointPress(point, event)}
             />
           );
         })}
