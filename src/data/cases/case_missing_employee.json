@@ -129,7 +129,7 @@
   },
   "introDialogue": {
     "id": "intro_missing_employee",
-    "speaker": "HR-менеджер",
+    "speaker": "Менеджер",
     "lines": [
       {
         "text": "Дякую, що погодилися взятися за цю справу.",
@@ -166,18 +166,41 @@
       "id": "office_scene",
       "points": [
         {
-          "id": "desk",
-          "x": 0.55,
-          "y": 0.5,
+          "id": "laptop",
+          "x": 0.7,
+          "y": 0.37,
+          "width": 100,
+          "height": 120,
+          "conditions": [
+            {
+              "type": "pointDiscovered",
+              "sceneId": "office_scene",
+              "pointId": "notepad",
+              "hint": "Він під паролем"
+            }
+          ],
           "action": {
             "type": "evidence",
             "evidenceId": "work_report_draft"
           }
         },
         {
+          "id": "notepad",
+          "x": 0.48,
+          "y": 0.43,
+          "width": 40,
+          "height": 30,
+          "action": {
+            "type": "inspect",
+            "text": "Пароль від ноутбуку, можливо варто перевірити"
+          }
+        },
+        {
           "id": "calendar",
-          "x": 0.8,
-          "y": 0.25,
+          "x": 0.7,
+          "y": 0.15,
+          "width": 100,
+          "height": 150,
           "action": {
             "type": "evidence",
             "evidenceId": "calendar_mark"
@@ -185,8 +208,10 @@
         },
         {
           "id": "backpack",
-          "x": 0.05,
-          "y": 0.65,
+          "x": 0,
+          "y": 0.6,
+          "width": 70,
+          "height": 120,
           "action": {
             "type": "evidence",
             "evidenceId": "backpack_ready"
@@ -194,8 +219,10 @@
         },
         {
           "id": "window",
-          "x": 0.18,
-          "y": 0.32,
+          "x": 0,
+          "y": 0.05,
+          "width": 150,
+          "height": 280,
           "action": {
             "type": "evidence",
             "evidenceId": "open_window"
@@ -203,8 +230,10 @@
         },
         {
           "id": "wallet",
-          "x": 0.25,
-          "y": 0.58,
+          "x": 0.2,
+          "y": 0.6,
+          "width": 70,
+          "height": 100,
           "action": {
             "type": "evidence",
             "evidenceId": "empty_wallet"
@@ -212,8 +241,10 @@
         },
         {
           "id": "chair",
-          "x": 0.08,
-          "y": 0.87,
+          "x": 0,
+          "y": 0.85,
+          "width": 100,
+          "height": 70,
           "action": {
             "type": "inspect",
             "text": "Звичайний офісний стілець. Нічого підозрілого."
@@ -221,15 +252,10 @@
         },
         {
           "id": "trash",
-          "x": 0.8,
-          "y": 0.73,
-          "conditions": [
-            {
-              "type": "pointDiscovered",
-              "sceneId": "office_scene",
-              "pointId": "desk"
-            }
-          ],
+          "x": 0.7,
+          "y": 0.7,
+          "width": 100,
+          "height": 130,
           "action": {
             "type": "evidence",
             "evidenceId": "shredded_note"
@@ -277,7 +303,7 @@
     },
     {
       "id": "manager",
-      "name": "HR-менеджер",
+      "name": "Менеджер",
       "description": "Керівник потерпілого, відносини невідомі",
       "isAvailable": true,
       "dialogue": [
@@ -431,7 +457,7 @@
     }
   ],
   "deductionDialogue": {
-    "characterName": "HR-менеджер",
+    "characterName": "Менеджер",
     "introText": "Я хочу знати правду. Що сталося із співробітником?"
   },
   "reactions": {

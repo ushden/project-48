@@ -4,7 +4,7 @@ export const getSceneProgress = (scenePoint: ScenePoint[], discovered: Set<strin
   const left = scenePoint.filter(p => !discovered.has(p.id)).length;
 
   return {
-    left,
+    left: scenePoint.length - left,
     total: scenePoint.length,
   };
 };

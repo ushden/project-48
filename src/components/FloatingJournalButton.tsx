@@ -1,56 +1,61 @@
 import {Animated, Image, Pressable, StyleSheet, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useCaseStore} from '../store/caseStore';
-import {useEffect, useRef} from 'react';
+import {forwardRef, useEffect, useRef} from 'react';
+import type * as React from 'react';
 
-export function FloatingJournalButton() {
-  const pulse = useRef(new Animated.Value(1)).current;
+type Props = {};
 
-  const navigation = useNavigation<any>();
-  const hasUnread = useCaseStore(s => s.hasUnreadLogEntries);
+export const FloatingJournalButton = forwardRef<any, Props>((props, ref) => {
+    const pulse = useRef(new Animated.Value(1)).current;
 
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1.3,
-          duration: 1500,
-          useNativeDriver: true
-        }),
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true
-        })
-      ])
-    ).start();
-  }, []);
+    const navigation = useNavigation<any>();
+    const hasUnread = useCaseStore(s => s.hasUnreadLogEntries);
 
-  return (
-    <Pressable
-      style={styles.container}
-      onPress={() => {
-        navigation.navigate('Log');
-      }}
-    >
-      <View style={styles.icon}>
-        <Image
-          source={require('../../assets/notebook.png')}
-          resizeMode="cover"
-        />
-      </View>
+    useEffect(() => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulse, {
+            toValue: 1.3,
+            duration: 1500,
+            useNativeDriver: true
+          }),
+          Animated.timing(pulse, {
+            toValue: 1,
+            duration: 1500,
+            useNativeDriver: true
+          })
+        ])
+      ).start();
+    }, []);
 
-      {hasUnread && (
-        <Animated.View
-          style={[
-            styles.dot,
-            {transform: [{scale: pulse}]}
-          ]}
-        />
-      )}
-    </Pressable>
-  );
-}
+    return (
+      <Pressable
+        ref={ref}
+        style={styles.container}
+        onPress={() => {
+          navigation.navigate('Log');
+        }}
+      >
+        <View style={styles.icon}>
+          <Image
+            source={require('../../assets/notebook.png')}
+            resizeMode="cover"
+          />
+        </View>
+
+        {hasUnread && (
+          <Animated.View
+            style={[
+              styles.dot,
+              {transform: [{scale: pulse}]}
+            ]}
+          />
+        )}
+      </Pressable>
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   container: {

@@ -129,6 +129,7 @@ export type Condition = {
   id?: string
   pointId?: string
   sceneId?: string
+  hint?: string
 }
 
 export type CaseMeta = {
@@ -170,6 +171,8 @@ export type ScenePoint = {
   id: string
   x: number
   y: number
+  width: number
+  height: number
   action: SceneAction
   conditions?: Condition[]
 }
